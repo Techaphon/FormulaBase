@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en" th:lang="${#locale.language}"><head><link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261030-2"></script><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title th:text="#{ui.20}">Materials</title>
+</head>
+<body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main>
+<h1 th:text="#{ui.20}">Materials</h1><p class="ok" th:if="${message}" th:text="${@uiText.translate(message)}"></p><p class="error" th:if="${error}" th:text="${@uiText.translate(error)}"></p>
+<form method="get"><input name="keyword" th:value="${keyword}" placeholder="Search code or name" th:placeholder="#{ui.80}"><button th:text="#{ui.81}">Search</button></form>
+<h2 th:text="#{ui.82}">Add material</h2><form method="post" action="/materials"><input name="code" required placeholder="Code e.g. RM-001" th:placeholder="#{ui.83}"><input name="name" required placeholder="Material name" th:placeholder="#{ui.84}"><select name="unit" required><option value="" th:text="#{ui.85}">Select unit</option><option th:each="unit : ${units}" th:value="${unit}" th:text="${unit}"></option></select><button th:text="#{ui.86}">Save material</button></form>
+<div class="table-scroll"><table><thead><tr><th th:text="#{ui.87}">Code</th><th th:text="#{ui.75}">Name</th><th th:text="#{ui.70}">Unit</th></tr></thead><tbody><tr th:each="material : ${materials}"><td th:text="${material.code}"></td><td th:text="${material.name}"></td><td th:text="${material.stockUnit}"></td></tr><tr th:if="${#lists.isEmpty(materials)}"><td colspan="3" th:text="#{ui.88}">No materials yet</td></tr></tbody></table></div>
+</main></section></div></body></html>
+

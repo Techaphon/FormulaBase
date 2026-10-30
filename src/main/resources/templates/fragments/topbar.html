@@ -1,0 +1,13 @@
+<!doctype html>
+<div th:fragment="topbar" class="fb-topbar">
+    <a class="fb-brand" href="/workflow"><span class="fb-brand-mark">⚗</span><span>Formula Base</span></a>
+    <div class="fb-topbar-actions" aria-label="Display preferences" th:aria-label="#{ui.113}">
+        <form th:if="${session.FORMULA_BASE_USERNAME != null}" method="post" action="/logout" style="margin:0;padding:0;border:0"><button th:text="#{ui.5}">Logout</button></form>
+        <div class="fb-language" role="group" aria-label="Language" th:aria-label="#{ui.111}">
+            <button type="button" data-lang="th" onclick="fbSetLanguage('th')">TH</button>
+            <button type="button" data-lang="en" onclick="fbSetLanguage('en')">EN</button>
+        </div>
+        <button type="button" class="fb-icon-button" id="fb-theme-toggle" onclick="fbToggleTheme()" title="Toggle theme" th:title="#{ui.112}" aria-label="Toggle theme" th:aria-label="#{ui.112}">☾</button>
+    </div>
+</div>
+

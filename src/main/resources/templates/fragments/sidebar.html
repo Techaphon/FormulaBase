@@ -1,0 +1,13 @@
+<aside th:fragment="sidebar" class="fb-sidebar">
+<a class="fb-sidebar-brand" href="/workflow"><span class="fb-brand-mark">F</span><span><strong>Formula Base</strong><small th:text="#{ui.12}"></small></span></a>
+<nav aria-label="Navigation">
+<span class="fb-nav-label" th:text="#{ui.13}"></span>
+<a href="/workflow"><span aria-hidden="true">◫</span><span th:text="#{ui.11}"></span></a>
+<a href="/formulas"><span aria-hidden="true">⚗</span><span th:text="#{ui.18}"></span></a>
+<a th:if="${canManageFormula}" href="/materials"><span aria-hidden="true">◇</span><span th:text="#{ui.20}"></span></a>
+<a th:if="${canManageFormula}" href="/quality"><span aria-hidden="true">✓</span><span th:text="#{quality.title}"></span></a>
+<span class="fb-nav-label" th:if="${canPlan or canExecute}" th:text="#{ui.14}"></span>
+<a th:if="${canPlan}" href="/planning"><span aria-hidden="true">▦</span><span th:text="#{ui.21}"></span></a>
+<a th:if="${canExecute}" href="/worker/tasks"><span aria-hidden="true">▷</span><span th:text="#{ui.23}"></span></a>
+</nav><div class="fb-sidebar-footer"><small>Formula Base MES</small><p th:text="${session.FORMULA_BASE_USERNAME}"></p></div>
+</aside>

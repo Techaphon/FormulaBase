@@ -1,0 +1,6 @@
+#FileLock
+#Fri Oct 30 22:14:04 ICT 2026
+server=192.168.0.100\:62106
+hostName=192.168.0.100
+method=file
+id=1a18d600a7ddc4f615da03f3df051634803b34b9a8c

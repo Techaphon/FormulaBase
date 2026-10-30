@@ -1,0 +1,62 @@
+package com.formulabase.web;
+
+import com.formulabase.domain.UserRole;
+import com.formulabase.service.ProductionExecutionService;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Controller
+@RequestMapping("/worker")
+public class WorkerController {
+    private final ProductionExecutionService executionService;
+    private final SessionHelper sessionHelper;
+    public WorkerController(ProductionExecutionService executionService, SessionHelper sessionHelper) {
+        this.executionService = executionService;
+        this.sessionHelper = sessionHelper;
+    }
+    @GetMapping("/tasks")
+    public String tasks(HttpSession session, Model model) {
+        var user = sessionHelper.current(session);
+        if (user == null || (user.getRole() != UserRole.WORKER && user.getRole() != UserRole.CEO)) return "redirect:/login";
+        model.addAttribute("user", user);
+        model.addAttribute("today", LocalDate.now());
+        model.addAttribute("tasks", executionService.tasksForWorker(user, LocalDate.now()));
+        return "worker/tasks";
+    }
+    @GetMapping("/plans/{id}")
+    public String view(@PathVariable UUID id, HttpSession session, Model model) {
+        var user = sessionHelper.current(session);
+        if (user == null || (user.getRole() != UserRole.WORKER && user.getRole() != UserRole.CEO)) return "redirect:/login";
+        var plan = executionService.getPlan(id);
+        if (user.getRole() != UserRole.CEO && (plan.getAssignedWorker() == null || !plan.getAssignedWorker().getId().equals(user.getId()))) return "redirect:/worker/tasks";
+        model.addAttribute("user", user);
+        model.addAttribute("plan", plan);
+        model.addAttribute("materials", executionService.materialRequirements(id));
+        return "worker/view";
+    }
+    @PostMapping("/plans/{id}/start")
+    public String start(@PathVariable UUID id, @RequestParam BigDecimal lossPercentage,
+                        HttpSession session, RedirectAttributes redirect) {
+        try { executionService.start(id, sessionHelper.current(session), lossPercentage); redirect.addFlashAttribute("message", "Batch started"); }
+        catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
+        return "redirect:/worker/plans/" + id;
+    }
+    @PostMapping("/plans/{id}/complete")
+    public String complete(@PathVariable UUID id, @RequestParam int actualProduced,
+                           @RequestParam int rejected, HttpSession session, RedirectAttributes redirect) {
+        try { executionService.complete(id, sessionHelper.current(session), actualProduced, rejected); redirect.addFlashAttribute("message", "Batch recorded"); }
+        catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
+        return "redirect:/worker/plans/" + id;
+    }
+}
