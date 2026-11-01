@@ -43,7 +43,15 @@ public class WorkerController {
         model.addAttribute("user", user);
         model.addAttribute("plan", plan);
         model.addAttribute("materials", executionService.materialRequirements(id));
-        model.addAttribute("steps", executionService.steps(id));
+        var steps = executionService.steps(id);
+        model.addAttribute("steps", steps);
+        // Expose only the next eligible Start action. The service also enforces
+        // this rule, while the UI makes the sequence clear to the Worker.
+        model.addAttribute("nextStartStepId", steps.stream()
+                .anyMatch(step -> step.getStatus() == com.formulabase.domain.ExecutionStatus.IN_PROGRESS)
+                ? null
+                : steps.stream().filter(step -> step.getStatus() == com.formulabase.domain.ExecutionStatus.PENDING)
+                        .findFirst().map(step -> step.getId()).orElse(null));
         return "worker/view";
     }
     @PostMapping("/plans/{id}/start")

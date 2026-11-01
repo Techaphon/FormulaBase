@@ -2,7 +2,7 @@
 <html th:lang="${#locale.language}">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261031-4"></script><title>Create Formula</title>
+  <link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261101-1"></script><title>Create Formula</title>
 </head>
 <body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content">
   <div th:replace="~{fragments/topbar :: topbar}"></div><main>
@@ -24,8 +24,8 @@
         <div class="new-material-fields"><input name="newMaterialCodes" placeholder="New code"><input name="newMaterialNames" placeholder="New material name"><select name="newMaterialUnits"><option value="">Unit</option><option th:each="unit:${units}" th:value="${unit}" th:text="${unit}"></option></select></div>
         <input class="percent-input" name="percentages" type="number" step="0.000001" min="0" max="100" placeholder="% w/w"><input class="quantity-input" name="quantitiesPerUnit" type="number" step="0.00000001" min="0" placeholder="Qty / unit"><button type="button" onclick="removeRow(this,'material-row')">Remove</button>
       </div></div><button type="button" onclick="addMaterial()">+ Add material</button>
-      <h2>Production steps (optional)</h2><p class="hint">Set target time in seconds. The worker must record temperature only for steps where it is required.</p>
-      <div id="stepRows"><div class="row step-row"><input name="stepInstructions" placeholder="Instruction, e.g. Mix until uniform"><input name="stepTargetSeconds" type="number" min="0" placeholder="Target seconds"><select name="stepRequiresTemperature"><option value="false">Temperature not required</option><option value="true">Temperature required</option></select><button type="button" onclick="removeRow(this,'step-row')">Remove</button></div></div><button type="button" onclick="addStep()">+ Add step</button><button type="submit">Save Formula</button>
+      <h2>Production steps (optional)</h2><p class="hint">Set target time in minutes. The worker must record temperature only for steps where it is required.</p>
+      <div id="stepRows"><div class="row step-row"><input name="stepInstructions" placeholder="Instruction, e.g. Mix until uniform"><input name="stepTargetMinutes" type="number" min="1" step="1" placeholder="Target minutes"><select name="stepRequiresTemperature"><option value="false">Temperature not required</option><option value="true">Temperature required</option></select><button type="button" onclick="removeRow(this,'step-row')">Remove</button></div></div><button type="button" onclick="addStep()">+ Add step</button><button type="submit">Save Formula</button>
     </form>
   </main>
   <script>

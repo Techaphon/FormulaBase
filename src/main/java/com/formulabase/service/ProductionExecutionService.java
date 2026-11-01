@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -108,7 +109,13 @@ public class ProductionExecutionService {
     }
 
     @Transactional(readOnly = true)
-    public List<com.formulabase.domain.StepExecution> steps(UUID planId) { return getPlan(planId).getStepExecutions(); }
+    public List<com.formulabase.domain.StepExecution> steps(UUID planId) {
+        // A JPA collection has no guaranteed iteration order unless it is explicitly sorted.
+        // The Worker and print views must always follow the formula's numbered procedure.
+        return getPlan(planId).getStepExecutions().stream()
+                .sorted(Comparator.comparingInt(execution -> execution.getStep().getStepNumber()))
+                .toList();
+    }
 
     @Transactional
     public void startStep(UUID planId, UUID stepId, User actor) {

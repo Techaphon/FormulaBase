@@ -66,13 +66,13 @@ public class FormulaController {
                          @RequestParam(required = false) List<BigDecimal> percentages,
                          @RequestParam(required = false) List<BigDecimal> quantitiesPerUnit,
                          @RequestParam(required = false) List<String> stepInstructions,
-                         @RequestParam(required = false) List<Integer> stepTargetSeconds,
+                         @RequestParam(required = false) List<Integer> stepTargetMinutes,
                          @RequestParam(required = false) List<Boolean> stepRequiresTemperature,
                          HttpSession session,
                          RedirectAttributes redirect) {
         try {
             var formula = service.createWithSteps(documentNo, name, materialIds, newMaterialCodes, newMaterialNames,
-                    newMaterialUnits, materialPhases, calculationBasis, productUnitWeightGrams, percentages, quantitiesPerUnit, stepInstructions, stepTargetSeconds,
+                    newMaterialUnits, materialPhases, calculationBasis, productUnitWeightGrams, percentages, quantitiesPerUnit, stepInstructions, toSeconds(stepTargetMinutes),
                     stepRequiresTemperature, sessionHelper.current(session));
             redirect.addFlashAttribute("message", "Formula saved: " + formula.getDocumentNo());
             return "redirect:/formulas";
@@ -105,4 +105,14 @@ public class FormulaController {
     @PostMapping("/{id}/edit") public String update(@PathVariable UUID id,@RequestParam String documentNo,@RequestParam String name,@RequestParam List<String> materialIds,@RequestParam(required=false) List<String> materialPhases,@RequestParam(defaultValue="PER_PRODUCT_UNIT") FormulaCalculationBasis calculationBasis,@RequestParam(required=false) BigDecimal productUnitWeightGrams,@RequestParam(required=false) List<BigDecimal> percentages,@RequestParam(required=false) List<BigDecimal> quantitiesPerUnit,HttpSession session,RedirectAttributes redirect){try{service.updateDraft(id,documentNo,name,materialIds,materialPhases,calculationBasis,productUnitWeightGrams,percentages,quantitiesPerUnit,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula updated");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
     @PostMapping("/{id}/reject") public String reject(@PathVariable UUID id,@RequestParam String reason,HttpSession session,RedirectAttributes redirect){try{service.reject(id,reason,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula rejected");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
     @PostMapping("/{id}/delete") public String delete(@PathVariable UUID id,HttpSession session,RedirectAttributes redirect){try{service.deleteDraft(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula deleted");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas";}
+
+    /** The UI uses whole minutes; the existing domain stores seconds for precise elapsed-time comparison. */
+    private List<Integer> toSeconds(List<Integer> minutes) {
+        if (minutes == null) return null;
+        return minutes.stream().map(value -> {
+            if (value == null) return null;
+            try { return Math.multiplyExact(value, 60); }
+            catch (ArithmeticException ex) { throw new IllegalArgumentException("Target time is too large"); }
+        }).toList();
+    }
 }

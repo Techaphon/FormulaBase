@@ -57,7 +57,7 @@
             <tr th:each="execution : ${steps}">
                 <td class="center" th:text="${execution.step.stepNumber}">1</td>
                 <td><span th:text="${execution.step.instruction}">Instruction</span><small th:if="${execution.step.requiresTemperature}" class="required">Temperature required</small></td>
-                <td class="mono" th:text="${execution.step.targetSeconds == null ? 'Not specified' : execution.step.targetSeconds + ' sec'}">300 sec</td>
+                <td class="mono" th:text="${execution.step.targetSeconds == null ? 'Not specified' : execution.step.targetSeconds / 60 + ' min'}">5 min</td>
                 <!-- Do not use consecutive underscores in Thymeleaf expressions: __ is its preprocessing delimiter. -->
                 <td class="mono small" th:text="${execution.startedAt == null ? '--:--' : #temporals.format(execution.startedAt, 'HH:mm')}">--:--</td>
                 <td class="mono small" th:text="${execution.completedAt == null ? '--:--' : #temporals.format(execution.completedAt, 'HH:mm')}">--:--</td>

@@ -41,7 +41,7 @@
 
     <section class="spec-section"><h2>ขั้นตอนการปฏิบัติงาน</h2>
         <table class="spec-table step-spec"><thead><tr><th>ขั้นตอน</th><th>คำสั่งการผลิต</th><th>สถานะ</th><th>ระยะเวลาเป้าหมาย</th><th>อุณหภูมิ</th><th>เวลาเริ่ม</th><th>เวลาเสร็จ</th></tr></thead><tbody>
-            <tr th:each="step : ${formula.steps}"><td th:text="${step.stepNumber}">1</td><td th:text="${step.instruction}">Instruction</td><td>On</td><td th:text="${step.targetSeconds == null ? '–' : step.targetSeconds + ' sec'}">–</td><td th:text="${step.requiresTemperature ? 'บันทึกอุณหภูมิ' : 'RT'}">RT</td><td>:</td><td>:</td></tr>
+            <tr th:each="step : ${formula.steps}"><td th:text="${step.stepNumber}">1</td><td th:text="${step.instruction}">Instruction</td><td>On</td><td th:text="${step.targetSeconds == null ? '–' : step.targetSeconds / 60 + ' min'}">–</td><td th:text="${step.requiresTemperature ? 'บันทึกอุณหภูมิ' : 'RT'}">RT</td><td>:</td><td>:</td></tr>
             <tr th:if="${#lists.isEmpty(formula.steps)}"><td colspan="7" class="empty-state">ยังไม่ได้กำหนดขั้นตอนการผลิตในสูตร</td></tr>
         </tbody></table>
     </section>
