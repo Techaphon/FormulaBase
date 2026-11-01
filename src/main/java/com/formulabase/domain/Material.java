@@ -19,6 +19,9 @@ public class Material {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @jakarta.persistence.Version
+    private long version;
+
     @Column(nullable = false, unique = true, length = 50)
     private String code;
 

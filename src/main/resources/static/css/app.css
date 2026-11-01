@@ -5,4 +5,5 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 input[type="checkbox"]{width:24px!important;min-height:24px!important;accent-color:var(--accent);flex-shrink:0}
 .worker-page label.error{flex-direction:row;align-items:flex-start;font-weight:400;font-size:14px;line-height:1.6;gap:12px}
+.material-row .new-material-fields{display:contents}.material-row:not(.is-new) .new-material-fields{display:none}.material-row:not(.is-new) select[name="materialIds"]{grid-column:span 3}
 

@@ -21,7 +21,7 @@ public class ProductionHistory {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "production_plan_id", nullable = false, unique = true)
     private ProductionPlan productionPlan;
 
@@ -70,6 +70,7 @@ public class ProductionHistory {
     }
 
     public UUID getId() { return id; }
+    public ProductionPlan getProductionPlan() { return productionPlan; }
     public int getTargetQuantity() { return targetQuantity; }
     public BigDecimal getLossPercentage() { return lossPercentage; }
     public int getLossAllowanceQuantity() { return lossAllowanceQuantity; }

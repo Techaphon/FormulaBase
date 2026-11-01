@@ -11,6 +11,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OrderBy;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,6 +27,9 @@ public class ProductionPlan {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @jakarta.persistence.Version
+    private long version;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "planning_cycle_id", nullable = false)
@@ -72,6 +78,13 @@ public class ProductionPlan {
     private String qualityReviewedBy;
     private OffsetDateTime qualityReviewedAt;
 
+    @OneToMany(mappedBy = "productionPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private java.util.List<StepExecution> stepExecutions = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "productionPlan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("changedAt DESC")
+    private java.util.List<RescheduleLog> rescheduleLogs = new java.util.ArrayList<>();
+
     public String getQualityReviewNote() { return qualityReviewNote; }
     public String getQualityReviewedBy() { return qualityReviewedBy; }
     public OffsetDateTime getQualityReviewedAt() { return qualityReviewedAt; }
@@ -111,6 +124,8 @@ public class ProductionPlan {
     public User getAssignedWorker() { return assignedWorker; }
     public OffsetDateTime getStartedAt() { return startedAt; }
     public OffsetDateTime getCompletedAt() { return completedAt; }
+    public java.util.List<StepExecution> getStepExecutions() { return stepExecutions; }
+    public java.util.List<RescheduleLog> getRescheduleLogs() { return rescheduleLogs; }
 
     public int getGoodQuantity() {
         if (actualProducedQuantity == null || rejectedQuantity == null) return 0;
@@ -142,6 +157,13 @@ public class ProductionPlan {
     public void reschedule(LocalDate plannedDate) {
         if (status != ProductionPlanStatus.PLANNED) throw new IllegalStateException("Only planned tasks can be rescheduled");
         this.plannedDate = plannedDate;
+    }
+
+    public void addStepExecution(ProductionStep step) { stepExecutions.add(new StepExecution(this, step)); }
+    public void addRescheduleLog(LocalDate oldDate, LocalDate newDate, String reason, User actor) { rescheduleLogs.add(new RescheduleLog(this, oldDate, newDate, reason, actor)); }
+    public void cancel() {
+        if (status != ProductionPlanStatus.PLANNED) throw new IllegalStateException("Only planned tasks can be cancelled");
+        status = ProductionPlanStatus.CANCELLED;
     }
 
     public void complete(int actualProduced, int rejected) {

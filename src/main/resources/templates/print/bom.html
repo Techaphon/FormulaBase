@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="th" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Blending formula · ' + ${formula.documentNo}">Blending Formula Specification</title>
+    <link rel="stylesheet" href="/css/print.css">
+</head>
+<body class="print-document blending-spec">
+<section class="document-toolbar no-print">
+    <a class="button button-secondary" href="javascript:history.back()">← Back</a>
+    <form method="get" class="scale-form"><label for="batchSize">จำนวนผลิต (ชิ้น)</label><input id="batchSize" type="number" name="batchSize" min="1" max="1000000" th:value="${batchSize}"><button class="button button-secondary" type="submit">คำนวณใหม่</button></form>
+    <button class="button button-primary" type="button" onclick="window.print()">พิมพ์ A4</button>
+</section>
+
+<main class="spec-sheet">
+    <h1>เอกสารข้อกำหนดสูตรผสม <span>(BLENDING FORMULA SPECIFICATION)</span></h1>
+    <table class="spec-meta"><tbody>
+        <tr><th>ชื่อสินค้า</th><td th:text="${formula.name}">Product name</td><th>จำนวนการผลิต</th><td th:text="${batchSize} + ' ชิ้น'">100 ชิ้น</td><th>เลขเอกสาร</th><td th:text="${formula.documentNo}">FM-001</td></tr>
+        <tr><th>เลขที่สูตร</th><td th:text="${formula.documentNo}">FM-001</td><th>วันที่จัดทำ</th><td th:text="${#temporals.format(generatedAt, 'yyyy-MM-dd')}">2026-10-31</td><th>สถานะ</th><td th:text="${formula.status}">CONFIRMED</td></tr>
+        <tr><th>แก้ไขครั้งที่</th><td th:text="${formula.revision}">1</td><th>ผู้จัดทำเอกสาร</th><td th:text="${printedBy}">QC</td><th th:text="${percentFormula ? 'น้ำหนักรวมตาม Batch' : 'หน่วยผลผลิต'}">หน่วยผลผลิต</th><td th:text="${percentFormula ? #numbers.formatDecimal(batchMassGrams, 1, 4) + ' g' : 'ชิ้น (piece)'}">ชิ้น (piece)</td></tr>
+    </tbody></table>
+
+    <table class="spec-table material-spec"><thead><tr>
+        <th>No</th><th>รหัสวัตถุดิบ</th><th>ชื่อวัตถุดิบ / สารสำคัญ</th><th th:text="${percentFormula ? '% w/w' : 'ปริมาณต่อ 1 ชิ้น'}">ปริมาณต่อ 1 ชิ้น</th><th>หน่วย</th><th>เฟส</th><th>ปริมาณรวมตาม Batch</th><th>ล็อตวัตถุดิบ</th><th>วันที่หมดอายุ</th><th>อุณหภูมิ °C</th><th>การชั่งน้ำหนัก</th><th>ผู้ตรวจสอบ</th>
+    </tr></thead><tbody>
+        <tr th:each="line, stat : ${bomLines}">
+            <td th:text="${stat.count}">1</td><td th:text="${line.code}">RM-001</td><td class="material-name" th:text="${line.name}">Material</td>
+            <td class="number" th:text="${#numbers.formatDecimal(line.perUnit, 1, 4)}">0.0000</td><td th:text="${line.perUnitUnit}">KG</td><td class="phase" th:text="${line.phase}">A</td>
+            <td class="number strong" th:text="${#numbers.formatDecimal(line.total, 1, 4) + ' ' + line.totalUnit}">0.0000 KG</td><td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(bomLines)}"><td colspan="12" class="empty-state">ยังไม่มีรายการวัตถุดิบในสูตร</td></tr>
+        <tr class="total-row"><td colspan="5">รวมรายการวัตถุดิบ <span th:text="${#lists.size(bomLines)}">0</span> รายการ</td><td>–</td><td colspan="6">ผลผลิตที่วางแผน: <strong th:text="${batchSize} + ' ชิ้น'">100 ชิ้น</strong></td></tr>
+    </tbody></table>
+
+    <section class="spec-section"><h2>คำสั่งการผลิต / ข้อกำหนดการควบคุมคุณภาพ การตรวจสอบโดยทีม QC</h2>
+        <table class="spec-table quality-table"><tbody>
+            <tr><th>คุณลักษณะที่ตรวจสอบ</th><th>ข้อกำหนด / ผลการตรวจ</th><th>ผู้ตรวจสอบ / วันที่</th></tr>
+            <tr><td>ลักษณะเนื้อผลิตภัณฑ์</td><td></td><td></td></tr><tr><td>อุณหภูมิระหว่างกระบวนการ</td><td></td><td></td></tr><tr><td>บรรจุภัณฑ์ / ปริมาณบรรจุ</td><td></td><td></td></tr>
+        </tbody></table>
+    </section>
+
+    <section class="spec-section"><h2>ขั้นตอนการปฏิบัติงาน</h2>
+        <table class="spec-table step-spec"><thead><tr><th>ขั้นตอน</th><th>คำสั่งการผลิต</th><th>สถานะ</th><th>ระยะเวลาเป้าหมาย</th><th>อุณหภูมิ</th><th>เวลาเริ่ม</th><th>เวลาเสร็จ</th></tr></thead><tbody>
+            <tr th:each="step : ${formula.steps}"><td th:text="${step.stepNumber}">1</td><td th:text="${step.instruction}">Instruction</td><td>On</td><td th:text="${step.targetSeconds == null ? '–' : step.targetSeconds + ' sec'}">–</td><td th:text="${step.requiresTemperature ? 'บันทึกอุณหภูมิ' : 'RT'}">RT</td><td>:</td><td>:</td></tr>
+            <tr th:if="${#lists.isEmpty(formula.steps)}"><td colspan="7" class="empty-state">ยังไม่ได้กำหนดขั้นตอนการผลิตในสูตร</td></tr>
+        </tbody></table>
+    </section>
+
+    <section class="spec-section phase-reference"><h2>คำอธิบาย Phase</h2><table class="spec-table"><tbody>
+        <tr><th>Phase A</th><td>Water Phase / เฟสน้ำ — สารที่ละลายในน้ำเป็นหลัก และต้องให้ความร้อนก่อนผสม</td></tr>
+        <tr><th>Phase B</th><td>Oil Phase / เฟสน้ำมัน — น้ำมัน บัตเตอร์ แว็กซ์ หรือสารประสาน ซึ่งต้องให้ความร้อนเพื่อให้ของแข็งละลาย</td></tr>
+        <tr><th>Phase C / P</th><td>Cool Down Phase / เฟสสารเติมแต่ง — เติมหลังผสม A และ B และลดอุณหภูมิลงโดยทั่วไปต่ำกว่า 40–45 °C</td></tr>
+    </tbody></table></section>
+
+    <footer class="spec-signatures"><div><div></div><strong>อนุมัติโดย CEO</strong><span>ลายเซ็น CEO</span></div><div><div></div><strong>ผู้ตรวจสอบและวันที่</strong><span>QC / ผู้ปฏิบัติงาน</span></div></footer>
+    <footer class="spec-footer"><span th:text="'Doc No. ' + ${formula.documentNo}">Doc No.</span><span th:text="'เอกสารควบคุม · Revision ' + ${formula.revision} + ' · พิมพ์เมื่อ ' + ${#temporals.format(generatedAt, 'yyyy-MM-dd')}">Revision</span></footer>
+</main>
+</body></html>

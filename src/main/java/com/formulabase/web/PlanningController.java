@@ -41,7 +41,7 @@ public class PlanningController {
     @PostMapping
     public String createCycle(@RequestParam String planningMonth, HttpSession session, RedirectAttributes redirect) {
         if (!allowed(session, UserRole.PC, UserRole.CEO)) return "redirect:/login";
-        try { planningService.createCycle(planningMonth); redirect.addFlashAttribute("message", "Planning cycle created"); }
+        try { planningService.createCycle(planningMonth, sessionHelper.current(session)); redirect.addFlashAttribute("message", "Planning cycle created"); }
         catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
         return "redirect:/planning";
     }
@@ -70,9 +70,16 @@ public class PlanningController {
     @PostMapping("/{id}/lock")
     public String lock(@PathVariable UUID id, HttpSession session, RedirectAttributes redirect) {
         if (!allowed(session, UserRole.PC, UserRole.CEO)) return "redirect:/login";
-        try { planningService.lockCycle(id); redirect.addFlashAttribute("message", "Planning cycle locked"); }
+        try { planningService.lockCycle(id, sessionHelper.current(session)); redirect.addFlashAttribute("message", "Planning cycle locked"); }
         catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
         return "redirect:/planning/" + id;
+    }
+
+    @PostMapping("/plans/{id}/reschedule") public String reschedule(@PathVariable UUID id,@RequestParam LocalDate plannedDate,@RequestParam(required=false) UUID workerId,@RequestParam String reason,HttpSession session,RedirectAttributes redirect){
+        try{planningService.reschedule(id,plannedDate,workerId,reason,sessionHelper.current(session));redirect.addFlashAttribute("message","Production task rescheduled");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/planning/"+planningService.getPlanCycleId(id);
+    }
+    @PostMapping("/plans/{id}/cancel") public String cancel(@PathVariable UUID id,HttpSession session,RedirectAttributes redirect){
+        UUID cycleId=planningService.getPlanCycleId(id);try{planningService.cancel(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Production task cancelled");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/planning/"+cycleId;
     }
 
     private boolean allowed(HttpSession session, UserRole... roles) {

@@ -43,6 +43,7 @@ public class WorkerController {
         model.addAttribute("user", user);
         model.addAttribute("plan", plan);
         model.addAttribute("materials", executionService.materialRequirements(id));
+        model.addAttribute("steps", executionService.steps(id));
         return "worker/view";
     }
     @PostMapping("/plans/{id}/start")
@@ -59,4 +60,7 @@ public class WorkerController {
         catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
         return "redirect:/worker/plans/" + id;
     }
+    @PostMapping("/plans/{planId}/steps/{stepId}/start") public String startStep(@PathVariable UUID planId,@PathVariable UUID stepId,HttpSession session,RedirectAttributes redirect){try{executionService.startStep(planId,stepId,sessionHelper.current(session));redirect.addFlashAttribute("message","Production step started");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/worker/plans/"+planId;}
+    @PostMapping("/plans/{planId}/steps/{stepId}/complete") public String completeStep(@PathVariable UUID planId,@PathVariable UUID stepId,@RequestParam(required=false) BigDecimal temperature,HttpSession session,RedirectAttributes redirect){try{executionService.completeStep(planId,stepId,temperature,sessionHelper.current(session));redirect.addFlashAttribute("message","Production step recorded");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/worker/plans/"+planId;}
+    @PostMapping("/plans/{planId}/steps/{stepId}/acknowledge") public String acknowledge(@PathVariable UUID planId,@PathVariable UUID stepId,@RequestParam String note,HttpSession session,RedirectAttributes redirect){try{executionService.acknowledgeStepAlert(planId,stepId,note,sessionHelper.current(session));redirect.addFlashAttribute("message","Overdue alert acknowledged");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/worker/plans/"+planId;}
 }

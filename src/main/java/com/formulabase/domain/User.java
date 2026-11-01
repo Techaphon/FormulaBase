@@ -18,6 +18,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @jakarta.persistence.Version
+    private long version;
+
     @Column(nullable = false, unique = true, length = 80)
     private String username;
 
@@ -50,4 +53,9 @@ public class User {
     public String getFullName() { return fullName; }
     public UserRole getRole() { return role; }
     public boolean isActive() { return active; }
+    public void setUsername(String username) { this.username = username; }
+    public void setPassword(String password) { this.password = password; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+    public void setRole(UserRole role) { this.role = role; }
+    public void setActive(boolean active) { this.active = active; }
 }

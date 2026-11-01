@@ -6,6 +6,9 @@
 <a href="/formulas"><span aria-hidden="true">⚗</span><span th:text="#{ui.18}"></span></a>
 <a th:if="${canManageFormula}" href="/materials"><span aria-hidden="true">◇</span><span th:text="#{ui.20}"></span></a>
 <a th:if="${canManageFormula}" href="/quality"><span aria-hidden="true">✓</span><span th:text="#{quality.title}"></span></a>
+<a th:if="${isCeo}" href="/users"><span aria-hidden="true">◉</span><span>Users</span></a>
+<a th:if="${isCeo}" href="/audit"><span aria-hidden="true">◷</span><span>Audit log</span></a>
+<a th:if="${isCeo or canPlan}" href="/history"><span aria-hidden="true">▤</span><span>Production history</span></a>
 <span class="fb-nav-label" th:if="${canPlan or canExecute}" th:text="#{ui.14}"></span>
 <a th:if="${canPlan}" href="/planning"><span aria-hidden="true">▦</span><span th:text="#{ui.21}"></span></a>
 <a th:if="${canExecute}" href="/worker/tasks"><span aria-hidden="true">▷</span><span th:text="#{ui.23}"></span></a>

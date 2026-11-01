@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import jakarta.servlet.http.HttpSession;
 
@@ -34,11 +35,15 @@ public class MaterialController {
         if (user == null) return "redirect:/login";
         if (user.getRole() != com.formulabase.domain.UserRole.QC && user.getRole() != com.formulabase.domain.UserRole.CEO) return "redirect:/materials";
         try {
-            service.create(code, name, unit);
+            service.create(code, name, unit, user);
             redirect.addFlashAttribute("message", "Material saved");
         } catch (RuntimeException ex) {
             redirect.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/materials";
+    }
+    @PostMapping("/{id}/delete") public String delete(@PathVariable java.util.UUID id, HttpSession session, RedirectAttributes redirect) {
+        var user=sessionHelper.current(session);if(user==null)return "redirect:/login";if(user.getRole()!=com.formulabase.domain.UserRole.QC&&user.getRole()!=com.formulabase.domain.UserRole.CEO)return "redirect:/materials";
+        try{service.delete(id,user);redirect.addFlashAttribute("message","Material deleted");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/materials";
     }
 }

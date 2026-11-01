@@ -2,3 +2,8 @@ oracleJdk-27/
 target/ 
 *.jar 
 *.zip 
+data/
+.env
+.env.*
+!*.env.example
+src/main/resources/application-local.properties

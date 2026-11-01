@@ -1,0 +1,19 @@
+# Builds a deployable Formula Base container without placing database credentials
+# in source control or Cloud Build logs. Deploy this image from Cloud Run after
+# configuring DB_PASSWORD through Secret Manager.
+steps:
+  - id: test-and-package
+    name: gcr.io/cloud-builders/mvn
+    # Maven's package phase runs the test phase before assembling the JAR.
+    args: ["clean", "package"]
+
+  - id: build-container
+    name: gcr.io/cloud-builders/docker
+    args:
+      ["build", "-t", "gcr.io/$PROJECT_ID/formula-base:$BUILD_ID", "."]
+
+images:
+  - gcr.io/$PROJECT_ID/formula-base:$BUILD_ID
+
+options:
+  logging: CLOUD_LOGGING_ONLY

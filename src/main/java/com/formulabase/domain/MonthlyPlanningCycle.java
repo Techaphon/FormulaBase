@@ -23,6 +23,9 @@ public class MonthlyPlanningCycle {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @jakarta.persistence.Version
+    private long version;
+
     @Column(name = "planning_month", nullable = false, unique = true, length = 7)
     private String planningMonth;
 

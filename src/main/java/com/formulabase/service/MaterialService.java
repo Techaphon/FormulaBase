@@ -11,9 +11,13 @@ import java.util.List;
 @Service
 public class MaterialService {
     private final MaterialRepository repository;
+    private final com.formulabase.repository.FormulaMaterialRepository formulaMaterials;
+    private final AuditLogService audit;
 
-    public MaterialService(MaterialRepository repository) {
+    public MaterialService(MaterialRepository repository, com.formulabase.repository.FormulaMaterialRepository formulaMaterials, AuditLogService audit) {
         this.repository = repository;
+        this.formulaMaterials = formulaMaterials;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -24,12 +28,27 @@ public class MaterialService {
 
     @Transactional
     public Material create(String code, String name, MaterialUnit unit) {
+        return create(code, name, unit, null);
+    }
+
+    @Transactional
+    public Material create(String code, String name, MaterialUnit unit, com.formulabase.domain.User actor) {
         if (code == null || code.isBlank() || name == null || name.isBlank() || unit == null) {
             throw new IllegalArgumentException("Code, name and unit are required");
         }
         if (repository.existsByCodeIgnoreCase(code.trim())) {
             throw new IllegalArgumentException("Material code already exists");
         }
-        return repository.save(new Material(code.trim(), name.trim(), unit));
+        Material material = repository.save(new Material(code.trim(), name.trim(), unit));
+        if (actor != null) audit.record(actor, "CREATE_MATERIAL", "MATERIAL", material.getId(), "Created " + material.getCode());
+        return material;
+    }
+
+    @Transactional
+    public void delete(java.util.UUID id, com.formulabase.domain.User actor) {
+        if (formulaMaterials.countByMaterialId(id) > 0) throw new IllegalStateException("Material is used in a formula and cannot be deleted");
+        Material material = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Material not found"));
+        audit.record(actor, "DELETE_MATERIAL", "MATERIAL", id, "Deleted " + material.getCode());
+        repository.delete(material);
     }
 }

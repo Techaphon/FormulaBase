@@ -23,7 +23,7 @@ public class FormulaMaterial {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "formula_id", nullable = false)
     private Formula formula;
 
@@ -38,17 +38,37 @@ public class FormulaMaterial {
     @Column(nullable = false, length = 20)
     private MaterialUnit unit;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 1)
+    private FormulaPhase phase = FormulaPhase.A;
+
+    @Column(precision = 9, scale = 6)
+    private BigDecimal percentage;
+
     protected FormulaMaterial() {
     }
 
     public FormulaMaterial(Formula formula, Material material, BigDecimal quantityPerUnit) {
+        this(formula, material, quantityPerUnit, FormulaPhase.A);
+    }
+
+    public FormulaMaterial(Formula formula, Material material, BigDecimal quantityPerUnit, FormulaPhase phase) {
+        this(formula, material, quantityPerUnit, phase, null);
+    }
+
+    public FormulaMaterial(Formula formula, Material material, BigDecimal quantityPerUnit,
+                           FormulaPhase phase, BigDecimal percentage) {
         if (quantityPerUnit == null || quantityPerUnit.signum() < 0) {
             throw new IllegalArgumentException("Quantity per unit cannot be negative");
         }
+        if (phase == null) throw new IllegalArgumentException("Material phase is required");
+        if (percentage != null && percentage.signum() < 0) throw new IllegalArgumentException("Material percentage cannot be negative");
         this.formula = formula;
         this.material = material;
         this.quantityPerUnit = quantityPerUnit;
         this.unit = material.getStockUnit();
+        this.phase = phase;
+        this.percentage = percentage;
     }
 
     public UUID getId() { return id; }
@@ -56,4 +76,6 @@ public class FormulaMaterial {
     public Material getMaterial() { return material; }
     public BigDecimal getQuantityPerUnit() { return quantityPerUnit; }
     public MaterialUnit getUnit() { return unit; }
+    public FormulaPhase getPhase() { return phase; }
+    public BigDecimal getPercentage() { return percentage; }
 }

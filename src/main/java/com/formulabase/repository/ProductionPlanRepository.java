@@ -17,4 +17,5 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlan, 
     long countByStatus(ProductionPlanStatus status);
     long countByStatusAndQualityReviewedAtIsNull(ProductionPlanStatus status);
     long countByPlannedDateAndStatusIn(LocalDate plannedDate, List<ProductionPlanStatus> statuses);
+    boolean existsByFormulaIdAndAssignedWorkerId(UUID formulaId, UUID workerId);
 }
