@@ -18,6 +18,7 @@ class DemoFlowTest {
     @Autowired FormulaService formulas;
     @Autowired PlanningService planning;
     @Autowired ProductionExecutionService production;
+    @Autowired AuditLogService audit;
     @Autowired UserRepository users;
     @Autowired ProductionHistoryRepository history;
 
@@ -119,5 +120,54 @@ class DemoFlowTest {
         formulas.confirm(revision.getId(), ceo);
         assertEquals(FormulaStatus.SUPERSEDED, formula.getStatus());
         assertEquals(FormulaStatus.CONFIRMED, revision.getStatus());
+    }
+
+    @Test void repeatedRevisionRequestsAlwaysUseANewDocumentNumber() {
+        var qc = users.findByUsernameIgnoreCase("qc").orElseThrow();
+        var ceo = users.findByUsernameIgnoreCase("ceo").orElseThrow();
+        var formula = formulas.create("REV-NUMBER-001", "Revision numbering", List.of(""), List.of("REV-NUMBER-RM"),
+                List.of("Water"), List.of("G"), List.of(BigDecimal.ONE), qc);
+        formulas.submitForApproval(formula.getId(), qc);
+        formulas.confirm(formula.getId(), ceo);
+
+        var first = formulas.createRevision(formula.getId(), qc);
+        var second = formulas.createRevision(formula.getId(), qc);
+
+        assertEquals("REV-NUMBER-001-R2", first.getDocumentNo());
+        assertEquals("REV-NUMBER-001-R3", second.getDocumentNo());
+        assertNotEquals(first.getDocumentNo(), second.getDocumentNo());
+    }
+
+    @Test void auditSearchFindsTheActorUsername() {
+        var worker = users.findByUsernameIgnoreCase("worker1").orElseThrow();
+        audit.record(worker, "START_PRODUCTION", "PRODUCTION_PLAN", worker.getId(), "Started a demo batch");
+
+        assertTrue(audit.search("worker1").stream().anyMatch(log -> log.getActor().getId().equals(worker.getId())));
+    }
+
+    @Test void temperatureRequiredStepRejectsValuesOutsideTheQcRangeAndKeepsBothInstructions() {
+        var worker = users.findByUsernameIgnoreCase("worker1").orElseThrow();
+        var formula = new Formula("TEMP-001", "Temperature test");
+        formula.addStep(1, "ให้ความร้อนถึง 70°C", "Heat to 70°C", 600, true,
+                new BigDecimal("68"), new BigDecimal("72"));
+        var step = formula.getSteps().get(0);
+        var execution = new StepExecution(null, step);
+        execution.start(worker);
+
+        assertEquals("ให้ความร้อนถึง 70°C", step.instructionFor("th"));
+        assertEquals("Heat to 70°C", step.instructionFor("en"));
+        assertThrows(IllegalArgumentException.class, () -> execution.complete(new BigDecimal("0.08")));
+        execution.complete(new BigDecimal("70"));
+        assertEquals(ExecutionStatus.COMPLETED, execution.getStatus());
+    }
+
+    @Test void legacyTemperatureStepCannotBeCompletedUntilQcSetsALimit() {
+        var worker = users.findByUsernameIgnoreCase("worker1").orElseThrow();
+        var formula = new Formula("TEMP-LEGACY-001", "Legacy temperature test");
+        formula.addStep(1, "Legacy heat instruction", 600, true);
+        var execution = new StepExecution(null, formula.getSteps().get(0));
+        execution.start(worker);
+
+        assertThrows(IllegalStateException.class, () -> execution.complete(new BigDecimal("70")));
     }
 }

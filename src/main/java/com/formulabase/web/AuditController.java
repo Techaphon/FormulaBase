@@ -11,5 +11,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class AuditController {
  private final AuditLogService audit; private final SessionHelper sessions;
  public AuditController(AuditLogService audit,SessionHelper sessions){this.audit=audit;this.sessions=sessions;}
- @GetMapping public String list(@RequestParam(required=false)String keyword,HttpSession s,Model m){var u=sessions.current(s);if(u==null||u.getRole()!=UserRole.CEO)return "redirect:/";m.addAttribute("logs",audit.search(keyword));m.addAttribute("keyword",keyword==null?"":keyword);return "audit/list";}
+ @GetMapping public String list(@RequestParam(required=false)String keyword,HttpSession s,Model m){
+  var u=sessions.current(s);
+  if(u==null||(u.getRole()!=UserRole.CEO&&u.getRole()!=UserRole.QC))return "redirect:/";
+  var logs=audit.search(keyword);
+  if(u.getRole()==UserRole.QC) logs=logs.stream().filter(log->"FORMULA".equals(log.getSubjectType())).toList();
+  m.addAttribute("logs",logs);m.addAttribute("keyword",keyword==null?"":keyword);
+  m.addAttribute("formulaOnly",u.getRole()==UserRole.QC);
+  return "audit/list";
+ }
 }

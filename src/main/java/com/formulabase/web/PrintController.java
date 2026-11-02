@@ -82,11 +82,12 @@ public class PrintController {
     @GetMapping("/work-order/{id}")
     public String workOrder(@PathVariable UUID id, HttpSession session, Model model) {
         User actor = requireSignedIn(session);
-        ProductionPlan plan = plans.getPlan(id);
+        var details = plans.details(id);
+        ProductionPlan plan = details.plan();
         assertWorkOrderAccess(plan, actor);
         model.addAttribute("plan", plan);
-        model.addAttribute("materials", plans.materialRequirements(id));
-        model.addAttribute("steps", plans.steps(id));
+        model.addAttribute("materials", details.materials());
+        model.addAttribute("steps", details.steps());
         model.addAttribute("generatedAt", OffsetDateTime.now());
         model.addAttribute("printedBy", actor.getFullName());
         audit.record(actor, "OPEN_WORK_ORDER_PRINT_PREVIEW", "PLAN", plan.getId(),

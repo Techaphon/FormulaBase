@@ -42,6 +42,7 @@ public class FormulaService {
         // The web views use both collections after this read-only transaction closes.
         formula.getMaterials().forEach(item -> item.getMaterial().getCode());
         formula.getSteps().size();
+        if (formula.getCreatedBy() != null) formula.getCreatedBy().getId();
         return formula;
     }
 
@@ -97,11 +98,26 @@ public class FormulaService {
                           BigDecimal productUnitWeightGrams, List<BigDecimal> percentages,
                           List<BigDecimal> quantitiesPerUnit, List<String> stepInstructions,
                           List<Integer> stepTargetSeconds, List<Boolean> stepRequiresTemperature, User actor) {
+        return createWithBilingualSteps(documentNo, name, materialIds, newMaterialCodes, newMaterialNames, newMaterialUnits,
+                materialPhases, calculationBasis, productUnitWeightGrams, percentages, quantitiesPerUnit,
+                stepInstructions, stepInstructions, stepTargetSeconds, stepRequiresTemperature, null, null, actor);
+    }
+
+    @Transactional
+    public Formula createWithBilingualSteps(String documentNo, String name, List<String> materialIds,
+                          List<String> newMaterialCodes, List<String> newMaterialNames, List<String> newMaterialUnits,
+                          List<String> materialPhases, FormulaCalculationBasis calculationBasis,
+                          BigDecimal productUnitWeightGrams, List<BigDecimal> percentages,
+                          List<BigDecimal> quantitiesPerUnit, List<String> stepInstructionsThai,
+                          List<String> stepInstructionsEnglish, List<Integer> stepTargetSeconds,
+                          List<Boolean> stepRequiresTemperature, List<BigDecimal> temperatureMinimums,
+                          List<BigDecimal> temperatureMaximums, User actor) {
         requireRole(actor, UserRole.QC, UserRole.CEO);
         Formula formula = createDraft(documentNo, name, materialIds, newMaterialCodes, newMaterialNames, newMaterialUnits,
                 materialPhases, calculationBasis, productUnitWeightGrams, percentages, quantitiesPerUnit);
         formula.setCreatedBy(actor);
-        addSteps(formula, stepInstructions, stepTargetSeconds, stepRequiresTemperature);
+        addSteps(formula, stepInstructionsThai, stepInstructionsEnglish, stepTargetSeconds, stepRequiresTemperature,
+                temperatureMinimums, temperatureMaximums);
         Formula saved = formulaRepository.save(formula);
         audit.record(actor, "CREATE_FORMULA", "FORMULA", saved.getId(), "Created formula " + saved.getDocumentNo());
         return saved;
@@ -163,15 +179,36 @@ public class FormulaService {
         return formulaRepository.save(formula);
     }
 
-    private void addSteps(Formula formula, List<String> instructions, List<Integer> seconds, List<Boolean> temperatures) {
-        if (instructions == null) return;
+    private void addSteps(Formula formula, List<String> instructionsThai, List<String> instructionsEnglish,
+                          List<Integer> seconds, List<Boolean> temperatures, List<BigDecimal> temperatureMinimums,
+                          List<BigDecimal> temperatureMaximums) {
+        int count = maxSize(instructionsThai, instructionsEnglish, seconds, temperatures, temperatureMinimums, temperatureMaximums);
+        if (count == 0) return;
         int number = 1;
-        for (int i = 0; i < instructions.size(); i++) {
-            String instruction = valueAt(instructions, i);
-            if (instruction == null || instruction.isBlank()) continue;
+        for (int i = 0; i < count; i++) {
+            String thai = valueAt(instructionsThai, i);
+            String english = valueAt(instructionsEnglish, i);
             Integer target = valueAt(seconds, i);
+            boolean requiresTemperature = Boolean.TRUE.equals(valueAt(temperatures, i));
+            BigDecimal minimum = valueAt(temperatureMinimums, i);
+            BigDecimal maximum = valueAt(temperatureMaximums, i);
+            boolean blankStep = (thai == null || thai.isBlank()) && (english == null || english.isBlank())
+                    && target == null && !requiresTemperature && minimum == null && maximum == null;
+            if (blankStep) continue;
+            if (thai == null || thai.isBlank() || english == null || english.isBlank()) {
+                throw new IllegalArgumentException("Enter both Thai and English production instructions for every step");
+            }
             if (target != null && target <= 0) throw new IllegalArgumentException("Target time must be greater than zero");
-            formula.addStep(number++, instruction.trim(), target, Boolean.TRUE.equals(valueAt(temperatures, i)));
+            if (requiresTemperature && minimum == null && maximum == null) {
+                throw new IllegalArgumentException("Set an acceptable minimum or maximum temperature for every temperature-required step");
+            }
+            if (!requiresTemperature && (minimum != null || maximum != null)) {
+                throw new IllegalArgumentException("Temperature limits require the temperature-required option");
+            }
+            if (minimum != null && maximum != null && minimum.compareTo(maximum) > 0) {
+                throw new IllegalArgumentException("Minimum temperature cannot exceed maximum temperature");
+            }
+            formula.addStep(number++, thai.trim(), english.trim(), target, requiresTemperature, minimum, maximum);
         }
     }
 
@@ -251,11 +288,17 @@ public class FormulaService {
         requireRole(actor, UserRole.QC, UserRole.CEO);
         Formula source = get(sourceId);
         if (source.getStatus() != FormulaStatus.CONFIRMED) throw new IllegalStateException("Only confirmed formulas can be revised");
-        String suffix = "-R" + (source.getRevision() + 1);
-        String prefix = source.getDocumentNo();
-        if (prefix.length() + suffix.length() > 50) prefix = prefix.substring(0, 50 - suffix.length());
-        Formula revision = new Formula(prefix + suffix, source.getName());
-        revision.setRevision(source.getRevision() + 1);
+        int nextRevision = source.getRevision() + 1;
+        String prefix = source.getDocumentNo().replaceFirst("-R\\d+$", "");
+        String candidate;
+        do {
+            String suffix = "-R" + nextRevision;
+            String shortenedPrefix = prefix.length() + suffix.length() > 50 ? prefix.substring(0, 50 - suffix.length()) : prefix;
+            candidate = shortenedPrefix + suffix;
+            nextRevision++;
+        } while (formulaRepository.existsByDocumentNoIgnoreCase(candidate));
+        Formula revision = new Formula(candidate, source.getName());
+        revision.setRevision(nextRevision - 1);
         revision.setPreviousRevision(source);
         revision.setCreatedBy(actor);
         revision.setCalculationBasis(source.getCalculationBasis());
@@ -264,7 +307,10 @@ public class FormulaService {
             if (source.getCalculationBasis() == FormulaCalculationBasis.PERCENT_W_W) revision.addMaterialPercent(item.getMaterial(), item.getPercentage(), item.getPhase());
             else revision.addMaterial(item.getMaterial(), item.getQuantityPerUnit(), item.getPhase());
         }
-        for (var step : source.getSteps()) revision.addStep(step.getStepNumber(), step.getInstruction(), step.getTargetSeconds(), step.isRequiresTemperature());
+        for (var step : source.getSteps()) {
+            revision.addStep(step.getStepNumber(), step.instructionFor("th"), step.instructionFor("en"),
+                    step.getTargetSeconds(), step.isRequiresTemperature(), step.getTemperatureMinC(), step.getTemperatureMaxC());
+        }
         Formula saved = formulaRepository.save(revision);
         audit.record(actor, "CREATE_FORMULA_REVISION", "FORMULA", saved.getId(), "Revision " + saved.getDocumentNo() + " derived from " + source.getDocumentNo());
         return saved;
@@ -302,9 +348,24 @@ public class FormulaService {
                                List<String> materialPhases, FormulaCalculationBasis calculationBasis,
                                BigDecimal productUnitWeightGrams, List<BigDecimal> percentages,
                                List<BigDecimal> quantities, User actor) {
+        return updateDraftWithSteps(id, documentNo, name, materialIds, materialPhases, calculationBasis,
+                productUnitWeightGrams, percentages, quantities, null, null, null, null, null, null, actor);
+    }
+
+    @Transactional
+    public Formula updateDraftWithSteps(java.util.UUID id, String documentNo, String name, List<String> materialIds,
+                               List<String> materialPhases, FormulaCalculationBasis calculationBasis,
+                               BigDecimal productUnitWeightGrams, List<BigDecimal> percentages,
+                               List<BigDecimal> quantities, List<String> stepInstructionsThai,
+                               List<String> stepInstructionsEnglish, List<Integer> stepTargetSeconds,
+                               List<Boolean> stepRequiresTemperature, List<BigDecimal> temperatureMinimums,
+                               List<BigDecimal> temperatureMaximums, User actor) {
         requireRole(actor, UserRole.QC, UserRole.CEO);
         Formula formula = formulaRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Formula not found"));
         if (formula.getStatus() != FormulaStatus.DRAFT && formula.getStatus() != FormulaStatus.REJECTED) throw new IllegalStateException("Only draft or rejected formulas can be edited");
+        if (actor.getRole() == UserRole.QC && (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(actor.getId()))) {
+            throw new IllegalStateException("QC can edit only a formula they created");
+        }
         if (documentNo == null || documentNo.isBlank() || name == null || name.isBlank()) throw new IllegalArgumentException("Document number and formula name are required");
         if (formulaRepository.existsByDocumentNoIgnoreCaseAndIdNot(documentNo.trim(), id)) throw new IllegalArgumentException("Document number already exists");
         formula.setDocumentNo(documentNo.trim()); formula.setName(name.trim()); formula.setRevision(formula.getRevision() + 1);
@@ -325,6 +386,11 @@ public class FormulaService {
             items.add(new com.formulabase.domain.FormulaMaterial(formula, material, quantity, phaseAt(materialPhases, i), percentage));
         }
         formula.replaceMaterials(items);
+        if (stepInstructionsThai != null || stepInstructionsEnglish != null) {
+            formula.replaceSteps(new java.util.ArrayList<>());
+            addSteps(formula, stepInstructionsThai, stepInstructionsEnglish, stepTargetSeconds,
+                    stepRequiresTemperature, temperatureMinimums, temperatureMaximums);
+        }
         formula.setCalculationBasis(basis);
         formula.setProductUnitWeightGrams(basis == FormulaCalculationBasis.PERCENT_W_W ? productUnitWeightGrams : null);
         formula.setStatus(FormulaStatus.DRAFT); formula.setRejectionReason(null);

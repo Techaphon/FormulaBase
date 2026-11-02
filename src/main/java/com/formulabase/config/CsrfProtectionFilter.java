@@ -36,9 +36,18 @@ public class CsrfProtectionFilter extends OncePerRequestFilter {
             token = Base64.getUrlEncoder().withoutPadding().encodeToString(value);
             request.getSession().setAttribute(SESSION_KEY, token);
         }
+        // Render the token directly in server-side forms. This keeps login safe even
+        // if the browser delays or blocks the JavaScript fallback that adds tokens.
+        request.setAttribute("csrfToken", token);
         addCookie(response, token, request.isSecure());
         if (!HttpMethod.GET.matches(request.getMethod()) && !HttpMethod.HEAD.matches(request.getMethod()) && !HttpMethod.OPTIONS.matches(request.getMethod())) {
             String supplied = request.getParameter("_csrf");
+            // The login page is reachable before any application JavaScript has run.
+            // Accept the SameSite cookie only for that first form post as a safe fallback;
+            // every authenticated state-changing request still requires its hidden token.
+            if (supplied == null && "/login".equals(request.getServletPath())) {
+                supplied = cookieValue(request, COOKIE_NAME);
+            }
             if (supplied == null || !MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8), supplied.getBytes(StandardCharsets.UTF_8))) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid CSRF token");
                 return;
@@ -49,5 +58,13 @@ public class CsrfProtectionFilter extends OncePerRequestFilter {
 
     private void addCookie(HttpServletResponse response, String token, boolean secure) {
         response.addHeader("Set-Cookie", COOKIE_NAME + "=" + token + "; Path=/; SameSite=Strict" + (secure ? "; Secure" : ""));
+    }
+
+    private String cookieValue(HttpServletRequest request, String name) {
+        if (request.getCookies() == null) return null;
+        for (var cookie : request.getCookies()) {
+            if (name.equals(cookie.getName())) return cookie.getValue();
+        }
+        return null;
     }
 }

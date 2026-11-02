@@ -1,1 +1,48 @@
-<!doctype html><html th:lang="${#locale.language}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261031-1"></script><title>Audit log</title></head><body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main><h1>Audit log</h1><form method="get"><input name="keyword" th:value="${keyword}" placeholder="Search action or details"><button>Search</button></form><div class="table-scroll"><table><tr><th>Time</th><th>Actor</th><th>Action</th><th>Subject</th><th>Details</th></tr><tr th:each="log:${logs}"><td th:text="${log.createdAt}"></td><td th:text="${log.actor==null?'System':log.actor.username}"></td><td th:text="${log.action}"></td><td th:text="${log.subjectType}"></td><td th:text="${log.details}"></td></tr></table></div></main></section></div></body></html>
+<!doctype html>
+<html th:lang="${#locale.language}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/css/app.css" />
+    <script src="/js/app.js?v=20261031-1"></script>
+    <title th:text="#{audit.title}">Audit log</title>
+  </head>
+  <body class="workspace-page">
+    <div class="fb-shell">
+      <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
+      <section class="fb-content">
+        <div th:replace="~{fragments/topbar :: topbar}"></div>
+        <main>
+          <h1 th:text="#{audit.title}">Audit log</h1>
+          <form method="get">
+            <input
+              name="keyword"
+              th:value="${keyword}"
+              th:placeholder="#{audit.searchPlaceholder}"
+            /><button th:text="#{common.search}">Search</button>
+          </form>
+          <div class="table-scroll">
+            <table>
+              <tr>
+                <th th:text="#{common.time}">Time</th>
+                <th th:text="#{audit.actor}">Actor</th>
+                <th th:text="#{audit.action}">Action</th>
+                <th th:text="#{audit.subject}">Subject</th>
+                <th th:text="#{common.details}">Details</th>
+              </tr>
+              <tr th:each="log:${logs}">
+                <td th:text="${log.createdAt}"></td>
+                <td
+                  th:text="${log.actor==null?#messages.msg('common.system'):log.actor.username}"
+                ></td>
+                <td th:text="${log.action}"></td>
+                <td th:text="${log.subjectType}"></td>
+                <td th:text="${log.details}"></td>
+              </tr>
+            </table>
+          </div>
+        </main>
+      </section>
+    </div>
+  </body>
+</html>

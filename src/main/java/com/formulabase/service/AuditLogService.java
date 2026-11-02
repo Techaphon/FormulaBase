@@ -17,6 +17,6 @@ public class AuditLogService {
     }
     @Transactional(readOnly = true) public List<AuditLog> search(String keyword) {
         return keyword == null || keyword.isBlank() ? repository.findTop200ByOrderByCreatedAtDesc()
-                : repository.findByActionContainingIgnoreCaseOrDetailsContainingIgnoreCaseOrderByCreatedAtDesc(keyword.trim(), keyword.trim());
+                : repository.searchByKeyword(keyword.trim());
     }
 }

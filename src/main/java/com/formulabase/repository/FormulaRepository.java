@@ -15,6 +15,8 @@ public interface FormulaRepository extends JpaRepository<Formula, UUID> {
     boolean existsByDocumentNoIgnoreCase(String documentNo);
     boolean existsByDocumentNoIgnoreCaseAndIdNot(String documentNo, java.util.UUID id);
     List<Formula> findByStatusOrderByDocumentNoAsc(FormulaStatus status);
+    @Query("select f.status, count(f) from Formula f group by f.status")
+    List<Object[]> countGroupedByStatus();
     // Fetch the material graph explicitly. Steps are already EAGER; fetching both bags in one
     // SQL query causes Hibernate's MultipleBagFetchException.
     @EntityGraph(attributePaths = {"materials", "materials.material"})

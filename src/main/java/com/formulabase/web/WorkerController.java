@@ -38,12 +38,15 @@ public class WorkerController {
     public String view(@PathVariable UUID id, HttpSession session, Model model) {
         var user = sessionHelper.current(session);
         if (user == null || (user.getRole() != UserRole.WORKER && user.getRole() != UserRole.CEO)) return "redirect:/login";
-        var plan = executionService.getPlan(id);
+        var details = executionService.details(id);
+        var plan = details.plan();
         if (user.getRole() != UserRole.CEO && (plan.getAssignedWorker() == null || !plan.getAssignedWorker().getId().equals(user.getId()))) return "redirect:/worker/tasks";
         model.addAttribute("user", user);
         model.addAttribute("plan", plan);
-        model.addAttribute("materials", executionService.materialRequirements(id));
-        var steps = executionService.steps(id);
+        model.addAttribute("materials", details.materials());
+        int batchSize = plan.getPlannedQuantity() == null ? plan.getTargetQuantity() : plan.getPlannedQuantity();
+        model.addAttribute("bomHref", "/print/bom/" + plan.getFormula().getId() + "?batchSize=" + batchSize);
+        var steps = details.steps();
         model.addAttribute("steps", steps);
         // Expose only the next eligible Start action. The service also enforces
         // this rule, while the UI makes the sequence clear to the Worker.

@@ -110,6 +110,11 @@ public class Formula {
     public void addStep(int stepNumber, String instruction, Integer targetSeconds, boolean requiresTemperature) {
         steps.add(new ProductionStep(this, stepNumber, instruction, targetSeconds, requiresTemperature));
     }
+    public void addStep(int stepNumber, String instructionThai, String instructionEnglish, Integer targetSeconds,
+                        boolean requiresTemperature, BigDecimal temperatureMinC, BigDecimal temperatureMaxC) {
+        steps.add(new ProductionStep(this, stepNumber, instructionThai, instructionEnglish, targetSeconds,
+                requiresTemperature, temperatureMinC, temperatureMaxC));
+    }
     public void replaceMaterials(List<FormulaMaterial> updatedMaterials) { materials.clear(); materials.addAll(updatedMaterials); }
     public void replaceSteps(List<ProductionStep> updatedSteps) { steps.clear(); steps.addAll(updatedSteps); }
 

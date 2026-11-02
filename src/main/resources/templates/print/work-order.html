@@ -1,92 +1,281 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="'Work order · ' + ${plan.formula.documentNo}">Production work order</title>
-    <link rel="stylesheet" href="/css/print.css">
-</head>
-<body class="print-document">
-<section class="document-toolbar no-print">
-    <a class="button button-secondary" href="javascript:history.back()">← Back</a>
-    <span class="toolbar-caption">This document reflects the saved batch plan and execution record.</span>
-    <button class="button button-primary" type="button" onclick="window.print()">Print A4</button>
-</section>
-
-<main class="document-sheet">
-    <header class="document-header">
-        <div class="brand-block"><div class="brand-mark">FB</div><div><div class="brand-name">Formula Base</div><div class="brand-subtitle">Manufacturing execution &amp; quality control</div></div></div>
-        <div class="document-title"><h1>Production Work Order &amp; Batch Record</h1><p>Operator instruction, traceability and in-process record</p></div>
-        <div class="document-id"><span>Work order</span><strong th:text="${plan.id}">PLAN-ID</strong><span th:text="${plan.status}">PLANNED</span></div>
-    </header>
-
-    <section class="document-meta meta-grid four-columns">
-        <div><span>Formula</span><strong th:text="${plan.formula.documentNo + ' · ' + plan.formula.name}">Formula</strong></div>
-        <div><span>Scheduled date</span><strong th:text="${plan.plannedDate}">2026-01-01</strong></div>
-        <div><span>Assigned worker</span><strong th:text="${plan.assignedWorker == null ? 'Unassigned' : plan.assignedWorker.fullName}">Worker</strong></div>
-        <div><span>Formula revision</span><strong th:text="${plan.formula.revision}">1</strong></div>
-        <div><span>Customer target</span><strong th:text="${plan.targetQuantity + ' piece(s)'}">100 pieces</strong></div>
-        <div><span>Loss allowance</span><strong th:text="${plan.lossPercentage == null ? 'Set before start' : #numbers.formatDecimal(plan.lossPercentage, 1, 2) + '% (' + plan.lossAllowanceQuantity + ' piece(s))'}">5% (5 pieces)</strong></div>
-        <div><span>Planned production</span><strong th:text="${(plan.plannedQuantity == null ? plan.targetQuantity : plan.plannedQuantity) + ' piece(s)'}">105 pieces</strong></div>
-        <div><span>Started / completed</span><strong th:text="${(plan.startedAt == null ? 'Not started' : #temporals.format(plan.startedAt, 'yyyy-MM-dd HH:mm')) + ' / ' + (plan.completedAt == null ? '—' : #temporals.format(plan.completedAt, 'yyyy-MM-dd HH:mm'))}">Not started / —</strong></div>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${#messages.msg('print.workOrder') + ' · ' + plan.formula.documentNo}">
+      Production work order
+    </title>
+    <link rel="stylesheet" href="/css/print.css" />
+  </head>
+  <body class="print-document">
+    <section class="document-toolbar no-print">
+      <a class="button button-secondary" href="javascript:history.back()"
+        th:text="#{print.back}">← Back</a
+      >
+      <span class="toolbar-caption"
+        th:text="#{print.workOrderHint}">This document reflects the saved batch plan and execution record.</span
+      >
+      <button
+        class="button button-primary"
+        type="button"
+        onclick="window.print()"
+      >
+        <span th:text="#{print.printA4}">Print A4</span>
+      </button>
     </section>
 
-    <section class="document-section">
-        <div class="section-heading"><span>1</span><h2>Raw-material weighing &amp; lot verification</h2></div>
-        <table class="document-table compact-table">
-            <thead><tr><th class="narrow">#</th><th>Phase</th><th>Material code</th><th>Raw material</th><th class="number">Per piece</th><th class="number">Required for this batch</th><th>RM lot no.</th><th class="write-cell">Worker check</th></tr></thead>
-            <tbody>
-            <tr th:each="material, stat : ${materials}">
-                <td class="center" th:text="${stat.count}">1</td><td class="center strong" th:text="${material.phase}">A</td>
-                <td class="mono" th:text="${material.code}">RM-001</td>
-                <td th:text="${material.name}">Material</td>
-                <td class="number mono" th:text="${#numbers.formatDecimal(material.perUnit, 1, 4) + ' ' + material.perUnitUnit}">0 KG</td>
-                <td class="number mono strong" th:text="${#numbers.formatDecimal(material.total, 1, 4) + ' ' + material.totalUnit}">0 KG</td>
-                <td></td><td></td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(materials)}"><td colspan="8" class="empty-state">No material requirement is available for this batch.</td></tr>
-            </tbody>
-        </table>
-    </section>
-
-    <section class="document-section">
-        <div class="section-heading"><span>2</span><h2>Sequential production steps &amp; in-process controls</h2></div>
-        <table class="document-table compact-table">
-            <thead><tr><th class="narrow">Step</th><th>Instruction</th><th>Target</th><th>Actual start</th><th>Actual finish</th><th>Temperature</th><th>Status / check</th></tr></thead>
-            <tbody>
-            <tr th:each="execution : ${steps}">
-                <td class="center" th:text="${execution.step.stepNumber}">1</td>
-                <td><span th:text="${execution.step.instruction}">Instruction</span><small th:if="${execution.step.requiresTemperature}" class="required">Temperature required</small></td>
-                <td class="mono" th:text="${execution.step.targetSeconds == null ? 'Not specified' : execution.step.targetSeconds / 60 + ' min'}">5 min</td>
-                <!-- Do not use consecutive underscores in Thymeleaf expressions: __ is its preprocessing delimiter. -->
-                <td class="mono small" th:text="${execution.startedAt == null ? '--:--' : #temporals.format(execution.startedAt, 'HH:mm')}">--:--</td>
-                <td class="mono small" th:text="${execution.completedAt == null ? '--:--' : #temporals.format(execution.completedAt, 'HH:mm')}">--:--</td>
-                <td class="mono" th:text="${execution.recordedTemperature == null ? (execution.step.requiresTemperature ? '____ °C' : 'N/A') : execution.recordedTemperature + ' °C'}">____ °C</td>
-                <td><span th:text="${execution.status}">PENDING</span><small th:if="${execution.wasOverdue}" class="warning">Exceeded target time</small></td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(steps)}"><td colspan="7" class="empty-state">No production step is defined.</td></tr>
-            </tbody>
-        </table>
-    </section>
-
-    <section class="document-section result-section">
-        <div class="section-heading"><span>3</span><h2>Final output &amp; quality disposition</h2></div>
-        <div class="result-grid">
-            <div><span>Actual produced</span><strong th:text="${plan.actualProducedQuantity == null ? '____ piece(s)' : plan.actualProducedQuantity + ' piece(s)'}">____ pieces</strong></div>
-            <div><span>Rejected / lost</span><strong th:text="${plan.rejectedQuantity == null ? '____ piece(s)' : plan.rejectedQuantity + ' piece(s)'}">____ pieces</strong></div>
-            <div><span>Good output</span><strong th:text="${plan.completedAt == null ? '____ piece(s)' : plan.goodQuantity + ' piece(s)'}">____ pieces</strong></div>
-            <div><span>Batch outcome</span><strong th:text="${plan.status}">PLANNED</strong></div>
+    <main class="document-sheet">
+      <header class="document-header">
+        <div class="brand-block">
+          <div class="brand-mark">FB</div>
+          <div>
+            <div class="brand-name">Formula Base</div>
+            <div class="brand-subtitle">
+              <span th:text="#{print.brandSubtitle}">Manufacturing execution &amp; quality control</span>
+            </div>
+          </div>
         </div>
-    </section>
+        <div class="document-title">
+          <h1 th:text="#{print.workOrderTitle}">Production Work Order &amp; Batch Record</h1>
+          <p th:text="#{print.operatorInstruction}">Operator instruction, traceability and in-process record</p>
+        </div>
+        <div class="document-id">
+          <span th:text="#{print.workOrder}">Work order</span><strong th:text="${plan.id}">PLAN-ID</strong
+          ><span th:text="${#messages.msg('status.'+plan.status)}">PLANNED</span>
+        </div>
+      </header>
 
-    <aside class="document-note"><strong>Exception rule:</strong> if rejected quantity exceeds the worker's recorded loss allowance, or the good output is below the customer target, Formula Base flags the batch for QC review. Record the reason before release.</aside>
+      <section class="document-meta meta-grid four-columns">
+        <div>
+          <span th:text="#{history.formula}">Formula</span
+          ><strong
+            th:text="${plan.formula.documentNo + ' · ' + plan.formula.name}"
+            >Formula</strong
+          >
+        </div>
+        <div>
+          <span th:text="#{print.scheduledDate}">Scheduled date</span
+          ><strong th:text="${plan.plannedDate}">2026-01-01</strong>
+        </div>
+        <div>
+          <span th:text="#{print.assignedWorker}">Assigned worker</span
+          ><strong
+            th:text="${plan.assignedWorker == null ? #messages.msg('planning.unassigned') : plan.assignedWorker.fullName}"
+            >Worker</strong
+          >
+        </div>
+        <div>
+          <span th:text="#{print.formulaRevision}">Formula revision</span
+          ><strong th:text="${plan.formula.revision}">1</strong>
+        </div>
+        <div>
+          <span th:text="#{print.customerTarget}">Customer target</span
+          ><strong th:text="${plan.targetQuantity + ' ' + #messages.msg('unit.piece')}"
+            >100 pieces</strong
+          >
+        </div>
+        <div>
+          <span th:text="#{print.lossAllowance}">Loss allowance</span
+          ><strong
+            th:text="${plan.lossPercentage == null ? #messages.msg('print.notSetBeforeStart') : #numbers.formatDecimal(plan.lossPercentage, 1, 2) + '% (' + plan.lossAllowanceQuantity + ' ' + #messages.msg('unit.piece') + ')'}"
+            >5% (5 pieces)</strong
+          >
+        </div>
+        <div>
+          <span th:text="#{print.plannedProduction}">Planned production</span
+          ><strong
+            th:text="${(plan.plannedQuantity == null ? plan.targetQuantity : plan.plannedQuantity) + ' ' + #messages.msg('unit.piece')}"
+            >105 pieces</strong
+          >
+        </div>
+        <div>
+          <span th:text="#{print.startedCompleted}">Started / completed</span
+          ><strong
+            th:text="${(plan.startedAt == null ? #messages.msg('print.notStarted') : #temporals.format(plan.startedAt, 'yyyy-MM-dd HH:mm')) + ' / ' + (plan.completedAt == null ? '—' : #temporals.format(plan.completedAt, 'yyyy-MM-dd HH:mm'))}"
+            >Not started / —</strong
+          >
+        </div>
+      </section>
 
-    <footer class="signatures">
-        <div><div class="signature-line"></div><strong>Production worker</strong><span>Name, signature &amp; date</span></div>
-        <div><div class="signature-line"></div><strong>Production control (PC)</strong><span>Name, signature &amp; date</span></div>
-        <div><div class="signature-line"></div><strong>Quality control (QC)</strong><span>Name, signature &amp; date</span></div>
-    </footer>
-    <footer class="document-footer"><span th:text="'Generated for ' + ${printedBy} + ' · ' + ${#temporals.format(generatedAt, 'yyyy-MM-dd HH:mm XXX')}">Generated</span><span>Formula Base · Controlled print preview</span></footer>
-</main>
-</body>
+      <section class="document-section">
+        <div class="section-heading">
+          <span>1</span>
+          <h2 th:text="#{print.rawMaterialVerification}">Raw-material weighing &amp; lot verification</h2>
+        </div>
+        <table class="document-table compact-table">
+          <thead>
+            <tr>
+              <th class="narrow">#</th>
+              <th th:text="#{formula.phase}">Phase</th>
+              <th th:text="#{print.materialCode}">Material code</th>
+              <th th:text="#{formula.material}">Raw material</th>
+              <th class="number" th:text="#{print.perUnit}">Per unit</th>
+              <th class="number" th:text="#{print.requiredBatch}">Required for this batch</th>
+              <th th:text="#{print.materialLot}">RM lot no.</th>
+              <th class="write-cell" th:text="#{print.workerCheck}">Worker check</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="material, stat : ${materials}">
+              <td class="center" th:text="${stat.count}">1</td>
+              <td class="center strong" th:text="${material.phase}">A</td>
+              <td class="mono" th:text="${material.code}">RM-001</td>
+              <td th:text="${material.name}">Material</td>
+              <td
+                class="number mono"
+                th:text="${#numbers.formatDecimal(material.perUnit, 1, 4) + ' ' + material.perUnitUnit}"
+              >
+                0 KG
+              </td>
+              <td
+                class="number mono strong"
+                th:text="${#numbers.formatDecimal(material.total, 1, 4) + ' ' + material.totalUnit}"
+              >
+                0 KG
+              </td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(materials)}">
+              <td colspan="8" class="empty-state">
+                <span th:text="#{print.noMaterialRequirement}">No material requirement is available for this batch.</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="document-section">
+        <div class="section-heading">
+          <span>2</span>
+          <h2 th:text="#{print.sequentialSteps}">Sequential production steps &amp; in-process controls</h2>
+        </div>
+        <table class="document-table compact-table">
+          <thead>
+            <tr>
+              <th class="narrow" th:text="#{print.step}">Step</th>
+              <th th:text="#{formula.instruction}">Instruction</th>
+              <th th:text="#{worker.stepTarget}">Target</th>
+              <th th:text="#{print.actualStart}">Actual start</th>
+              <th th:text="#{print.actualFinish}">Actual finish</th>
+              <th th:text="#{formula.temperature}">Temperature</th>
+              <th th:text="#{common.status}">Status / check</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="execution : ${steps}">
+              <td class="center" th:text="${execution.step.stepNumber}">1</td>
+              <td>
+                <span th:text="${execution.step.instructionFor(#locale.language)}">Instruction</span
+                ><small
+                  th:if="${execution.step.requiresTemperature}"
+                  class="required"
+                  th:text="#{print.temperatureRequired}">Temperature required</small
+                >
+              </td>
+              <td
+                class="mono"
+                th:text="${execution.step.targetSeconds == null ? #messages.msg('print.notSpecified') : execution.step.targetSeconds / 60 + ' ' + #messages.msg('formula.targetMinutes')}"
+              >
+                5 min
+              </td>
+              <!-- Do not use consecutive underscores in Thymeleaf expressions: __ is its preprocessing delimiter. -->
+              <td
+                class="mono small"
+                th:text="${execution.startedAt == null ? '--:--' : #temporals.format(execution.startedAt, 'HH:mm')}"
+              >
+                --:--
+              </td>
+              <td
+                class="mono small"
+                th:text="${execution.completedAt == null ? '--:--' : #temporals.format(execution.completedAt, 'HH:mm')}"
+              >
+                --:--
+              </td>
+              <td
+                class="mono"
+                th:text="${execution.recordedTemperature == null ? (execution.step.requiresTemperature ? '____ °C' : #messages.msg('common.notRequired')) : execution.recordedTemperature + ' °C'}"
+              >
+                ____ °C
+              </td>
+              <td>
+                <span th:text="${#messages.msg('status.'+execution.status)}">PENDING</span
+                ><small th:if="${execution.wasOverdue}" class="warning"
+                  th:text="#{print.exceededTarget}">Exceeded target time</small
+                >
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(steps)}">
+              <td colspan="7" class="empty-state">
+                <span th:text="#{print.noProductionStep}">No production step is defined.</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="document-section result-section">
+        <div class="section-heading">
+          <span>3</span>
+          <h2 th:text="#{print.finalOutput}">Final output &amp; quality disposition</h2>
+        </div>
+        <div class="result-grid">
+          <div>
+            <span th:text="#{print.actualProduced}">Actual produced</span
+            ><strong
+              th:text="${plan.actualProducedQuantity == null ? '— ' + #messages.msg('unit.piece') : plan.actualProducedQuantity + ' ' + #messages.msg('unit.piece')}"
+              >____ pieces</strong
+            >
+          </div>
+          <div>
+            <span th:text="#{print.rejectedLost}">Rejected / lost</span
+            ><strong
+              th:text="${plan.rejectedQuantity == null ? '— ' + #messages.msg('unit.piece') : plan.rejectedQuantity + ' ' + #messages.msg('unit.piece')}"
+              >____ pieces</strong
+            >
+          </div>
+          <div>
+            <span th:text="#{print.goodOutput}">Good output</span
+            ><strong
+              th:text="${plan.completedAt == null ? '— ' + #messages.msg('unit.piece') : plan.goodQuantity + ' ' + #messages.msg('unit.piece')}"
+              >____ pieces</strong
+            >
+          </div>
+          <div>
+            <span th:text="#{print.batchOutcome}">Batch outcome</span
+            ><strong th:text="${#messages.msg('status.'+plan.status)}">PLANNED</strong>
+          </div>
+        </div>
+      </section>
+
+      <aside class="document-note">
+        <span th:text="#{print.exceptionRule}">Exception rule</span>
+      </aside>
+
+      <footer class="signatures">
+        <div>
+          <div class="signature-line"></div>
+          <strong th:text="#{print.productionWorker}">Production worker</strong
+          ><span th:text="#{print.signatureDate}">Name, signature &amp; date</span>
+        </div>
+        <div>
+          <div class="signature-line"></div>
+          <strong th:text="#{print.productionControl}">Production control (PC)</strong
+          ><span th:text="#{print.signatureDate}">Name, signature &amp; date</span>
+        </div>
+        <div>
+          <div class="signature-line"></div>
+          <strong th:text="#{print.qualityControl}">Quality control (QC)</strong
+          ><span th:text="#{print.signatureDate}">Name, signature &amp; date</span>
+        </div>
+      </footer>
+      <footer class="document-footer">
+        <span
+          th:text="${#messages.msg('print.generated') + ' ' + printedBy + ' · ' + #temporals.format(generatedAt, 'yyyy-MM-dd HH:mm XXX')}"
+          >Generated</span
+        ><span th:text="#{print.controlledPreview}">Formula Base · Controlled print preview</span>
+      </footer>
+    </main>
+  </body>
 </html>

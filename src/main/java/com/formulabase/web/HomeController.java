@@ -29,9 +29,12 @@ public class HomeController {
         if (user == null) return "redirect:/login";
         if (user.getRole() == com.formulabase.domain.UserRole.WORKER) return "redirect:/worker/tasks";
         if (user.getRole() != com.formulabase.domain.UserRole.CEO) {
-            model.addAttribute("snapshot", workflowService.snapshot(LocalDate.now()));
-            model.addAttribute("draftCycles", workflowService.draftCycles());
-            model.addAttribute("pendingApprovals", workflowService.pendingApprovals());
+            if (user.getRole() == com.formulabase.domain.UserRole.QC) {
+                model.addAttribute("snapshot", workflowService.snapshot(LocalDate.now()));
+                model.addAttribute("pendingApprovals", workflowService.pendingApprovals());
+            } else {
+                model.addAttribute("draftCycles", workflowService.draftCycles());
+            }
             return "workflow/role";
         }
         LocalDate today = LocalDate.now();

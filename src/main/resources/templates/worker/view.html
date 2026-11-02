@@ -1,1 +1,170 @@
-<!doctype html><html th:lang="${#locale.language}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261101-1"></script><title>Batch Execution</title></head><body class="worker-page"><div th:replace="~{fragments/topbar :: topbar}"></div><div class="wrap"><p><a href="/worker/tasks">← My tasks</a></p><article class="card"><h1 th:text="${plan.formula.name}"></h1><div class="metric"><span>Target</span><strong th:text="${plan.targetQuantity+' units'}"></strong></div><div class="metric" th:if="${plan.plannedQuantity!=null}"><span>Planned</span><strong th:text="${plan.plannedQuantity+' units'}"></strong></div><div class="metric"><span>Status</span><strong th:text="${plan.qualityReviewedAt != null ? #messages.msg('quality.saved') : #messages.msg('status.'+plan.status)}"></strong></div><p class="ok" th:if="${message}" th:text="${@uiText.translate(message)}"></p><p class="error" th:if="${error}" th:text="${@uiText.translate(error)}"></p><form th:if="${plan.status.name()=='PLANNED'}" method="post" th:action="@{'/worker/plans/'+${plan.id}+'/start'}"><label>Loss percentage (%)<input name="lossPercentage" type="number" min="0" max="100" step="0.01" required></label><button>Start entire batch</button></form><section><h2>Materials for this batch</h2><p class="hint" th:text="${plan.plannedQuantity==null?'Based on target quantity. Recalculated after starting.':'Includes loss allowance.'}"></p><div class="metric" th:each="item:${materials}"><span th:text="${item.name+' · '+item.phase}"></span><strong th:text="${#numbers.formatDecimal(item.total,1,3)+' '+item.totalUnit}"></strong></div></section><section th:if="${not #lists.isEmpty(steps)}"><h2>Production steps</h2><article class="card" th:each="execution:${steps}"><strong th:text="${execution.step.stepNumber+'. '+execution.step.instruction}"></strong><p>Target: <span th:text="${execution.step.targetSeconds==null?'-':execution.step.targetSeconds / 60 + ' min'}"></span> · Temperature: <span th:text="${execution.step.requiresTemperature?'Required':'Optional'}"></span></p><p>Status: <strong th:text="${execution.status}"></strong> <span th:if="${execution.recordedTemperature!=null}" th:text="${execution.recordedTemperature+' °C'}"></span></p><form th:if="${plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id == nextStartStepId}" method="post" th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/start'}"><button>Start step</button></form><p class="hint" th:if="${plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id != nextStartStepId}">Complete the previous step first.</p><form th:if="${execution.status.name()=='IN_PROGRESS'}" method="post" th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/complete'}"><label>Temperature (°C)<input name="temperature" type="number" step="0.01" th:required="${execution.step.requiresTemperature}"></label><button>Complete step</button></form><form th:if="${execution.overdue}" method="post" th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/acknowledge'}"><label>Overdue acknowledgement<input name="note" required></label><button>Acknowledge alert</button></form></article></section><form th:if="${plan.status.name()=='IN_PROGRESS'}" method="post" th:action="@{'/worker/plans/'+${plan.id}+'/complete'}"><p class="hint">Actual produced includes rejected units. Good = actual − rejected.</p><label>Actual produced units<input name="actualProduced" type="number" min="0" required></label><label>Rejected/lost units<input name="rejected" type="number" min="0" required></label><button>Complete batch</button></form><section th:if="${plan.actualProducedQuantity!=null}"><p th:text="${'Good quantity: '+plan.goodQuantity+' units'}"></p><p th:text="${'Rejected/lost: '+plan.rejectedQuantity+' units'}"></p></section></article></div></body></html>
+<!doctype html>
+<html th:lang="${#locale.language}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/css/app.css" />
+    <script src="/js/app.js?v=20261101-2"></script>
+    <title th:text="#{ui.103}">Batch Execution</title>
+  </head>
+  <body class="worker-page">
+    <div th:replace="~{fragments/topbar :: topbar}"></div>
+    <div class="wrap">
+      <p><a href="/worker/tasks" th:text="#{ui.104}">← My tasks</a></p>
+      <article class="card">
+      <h1 th:text="${plan.formula.name}"></h1>
+      <div class="fb-actions">
+        <a class="fb-action" th:href="${bomHref}" target="_blank" th:text="#{worker.previewBom}">Preview BOM</a>
+        <a class="fb-action" th:href="@{'/print/work-order/'+${plan.id}}" target="_blank" th:text="#{worker.printWorkOrder}">Print work order</a>
+      </div>
+        <div class="metric">
+          <span th:text="#{worker.target}">Target</span
+          ><strong th:text="${plan.targetQuantity+' '+#messages.msg('unit.piece')}"></strong>
+        </div>
+        <div class="metric" th:if="${plan.plannedQuantity!=null}">
+          <span th:text="#{worker.planned}">Planned</span
+          ><strong th:text="${plan.plannedQuantity+' '+#messages.msg('unit.piece')}"></strong>
+        </div>
+        <div class="metric">
+          <span th:text="#{common.status}">Status</span
+          ><strong
+            th:text="${plan.qualityReviewedAt != null ? #messages.msg('quality.saved') : #messages.msg('status.'+plan.status)}"
+          ></strong>
+        </div>
+        <p
+          class="ok"
+          th:if="${message}"
+          th:text="${@uiText.translate(message)}"
+        ></p>
+        <p
+          class="error"
+          th:if="${error}"
+          th:text="${@uiText.translate(error)}"
+        ></p>
+        <form
+          th:if="${plan.status.name()=='PLANNED'}"
+          method="post"
+          th:action="@{'/worker/plans/'+${plan.id}+'/start'}"
+        >
+          <label
+            ><span th:text="#{worker.lossPercentage}">Loss percentage (%)</span><input
+              name="lossPercentage"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              required /></label
+          ><button th:text="#{worker.startBatch}">Start entire batch</button>
+        </form>
+        <section>
+          <h2 th:text="#{worker.materials}">Materials for this batch</h2>
+          <p
+            class="hint"
+            th:text="${plan.plannedQuantity==null?#messages.msg('worker.materialsPreview'):#messages.msg('worker.materialsFinal')}"
+          ></p>
+          <div class="metric" th:each="item:${materials}">
+            <span th:text="${item.name+' · '+item.phase}"></span
+            ><strong
+              th:text="${#numbers.formatDecimal(item.total,1,3)+' '+item.totalUnit}"
+            ></strong>
+          </div>
+        </section>
+        <section th:if="${not #lists.isEmpty(steps)}">
+          <h2 th:text="#{worker.steps}">Production steps</h2>
+          <article class="card" th:each="execution:${steps}">
+            <strong
+              th:text="${execution.step.stepNumber+'. '+execution.step.instructionFor(#locale.language)}"
+            ></strong>
+            <p>
+              <span th:text="#{worker.stepTarget}">Target</span>:
+              <span
+                th:text="${execution.step.targetSeconds==null?'-':execution.step.targetSeconds / 60 + ' ' + #messages.msg('formula.targetMinutes')}"
+              ></span>
+              · <span th:text="#{worker.stepTemperature}">Temperature</span>:
+              <span
+                th:text="${execution.step.requiresTemperature ? (execution.step.temperatureMinC != null and execution.step.temperatureMaxC != null ? execution.step.temperatureMinC + '–' + execution.step.temperatureMaxC + ' °C' : execution.step.temperatureMinC != null ? '≥ ' + execution.step.temperatureMinC + ' °C' : '≤ ' + execution.step.temperatureMaxC + ' °C') : #messages.msg('common.optional')}"
+              ></span>
+            </p>
+            <p>
+              <span th:text="#{common.status}">Status</span>: <strong th:text="${#messages.msg('status.'+execution.status)}"></strong>
+              <span
+                th:if="${execution.recordedTemperature!=null}"
+                th:text="${execution.recordedTemperature+' °C'}"
+              ></span>
+            </p>
+            <p
+              class="hint step-timer"
+              th:if="${execution.status.name()=='IN_PROGRESS' and execution.startedAt!=null and execution.step.targetSeconds!=null}"
+              th:attr="data-started-at=${execution.startedAt},data-target-seconds=${execution.step.targetSeconds}"
+              aria-live="polite"
+            >
+              ⏱ <strong>--:--</strong>
+            </p>
+            <form
+              th:if="${plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id == nextStartStepId}"
+              method="post"
+              th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/start'}"
+            >
+              <button th:text="#{worker.startStep}">Start step</button>
+            </form>
+            <p
+              class="hint"
+              th:if="${plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id != nextStartStepId}"
+            >
+              <span th:text="#{worker.previousFirst}">Complete the previous step first.</span>
+            </p>
+            <form
+              th:if="${execution.status.name()=='IN_PROGRESS'}"
+              method="post"
+              th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/complete'}"
+            >
+              <label
+                ><span th:text="#{worker.temperature}">Temperature (°C)</span><input
+                  name="temperature"
+                  type="number"
+                  step="0.01"
+                  th:attr="min=${execution.step.temperatureMinC},max=${execution.step.temperatureMaxC}"
+                  th:required="${execution.step.requiresTemperature}" /></label
+              ><button th:text="#{worker.completeStep}">Complete step</button>
+            </form>
+            <form
+              th:if="${execution.overdue}"
+              method="post"
+              th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/acknowledge'}"
+            >
+              <label
+                ><span th:text="#{worker.overdueAcknowledgement}">Overdue acknowledgement</span><input name="note" required /></label
+              ><button th:text="#{worker.acknowledge}">Acknowledge alert</button>
+            </form>
+          </article>
+        </section>
+        <form
+          th:if="${plan.status.name()=='IN_PROGRESS'}"
+          method="post"
+          th:action="@{'/worker/plans/'+${plan.id}+'/complete'}"
+        >
+          <p class="hint">
+            <span th:text="#{worker.actualHint}">Actual produced includes rejected units. Good = actual − rejected.</span>
+          </p>
+          <label
+            ><span th:text="#{worker.actualProduced}">Actual produced units</span><input
+              name="actualProduced"
+              type="number"
+              min="0"
+              required /></label
+          ><label
+            ><span th:text="#{worker.rejectedLost}">Rejected/lost units</span><input
+              name="rejected"
+              type="number"
+              min="0"
+              required /></label
+          ><button th:text="#{worker.completeBatch}">Complete batch</button>
+        </form>
+        <section th:if="${plan.actualProducedQuantity!=null}">
+          <p th:text="#{worker.goodQuantity(${plan.goodQuantity})}"></p>
+          <p th:text="#{worker.rejectedQuantity(${plan.rejectedQuantity})}"></p>
+        </section>
+      </article>
+    </div>
+  </body>
+</html>

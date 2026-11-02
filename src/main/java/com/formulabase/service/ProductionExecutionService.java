@@ -89,7 +89,20 @@ public class ProductionExecutionService {
 
     @Transactional(readOnly = true)
     public List<MaterialRequirement> materialRequirements(UUID planId) {
+        return materialRequirements(getPlan(planId));
+    }
+
+    /**
+     * Loads everything the worker/print pages need in one transaction.  This avoids
+     * reloading the same plan, formula and executions for each section of a page.
+     */
+    @Transactional(readOnly = true)
+    public PlanDetails details(UUID planId) {
         var plan = getPlan(planId);
+        return new PlanDetails(plan, materialRequirements(plan), orderedSteps(plan));
+    }
+
+    private List<MaterialRequirement> materialRequirements(ProductionPlan plan) {
         int units = plan.getPlannedQuantity() == null ? plan.getTargetQuantity() : plan.getPlannedQuantity();
         boolean percentFormula = plan.getFormula().getCalculationBasis() == FormulaCalculationBasis.PERCENT_W_W;
         BigDecimal batchMassGrams = percentFormula
@@ -112,7 +125,11 @@ public class ProductionExecutionService {
     public List<com.formulabase.domain.StepExecution> steps(UUID planId) {
         // A JPA collection has no guaranteed iteration order unless it is explicitly sorted.
         // The Worker and print views must always follow the formula's numbered procedure.
-        return getPlan(planId).getStepExecutions().stream()
+        return orderedSteps(getPlan(planId));
+    }
+
+    private List<com.formulabase.domain.StepExecution> orderedSteps(ProductionPlan plan) {
+        return plan.getStepExecutions().stream()
                 .sorted(Comparator.comparingInt(execution -> execution.getStep().getStepNumber()))
                 .toList();
     }
@@ -146,6 +163,9 @@ public class ProductionExecutionService {
     /** perUnit is retained for the legacy work-order layout; percentage is set only for % w/w formulas. */
     public record MaterialRequirement(String phase, String code, String name, String perUnitUnit, String totalUnit,
                                       BigDecimal percentage, BigDecimal perUnit, BigDecimal total) { }
+
+    public record PlanDetails(ProductionPlan plan, List<MaterialRequirement> materials,
+                              List<com.formulabase.domain.StepExecution> steps) { }
 
     private void assertAssignedWorker(ProductionPlan plan, User worker) {
         if (worker != null && worker.getRole() == UserRole.CEO) return;

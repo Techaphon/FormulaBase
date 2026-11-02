@@ -1,1 +1,79 @@
-<!doctype html><html th:lang="${#locale.language}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title th:text="#{quality.title}"></title><link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261030-2"></script></head><body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main><h1 th:text="#{quality.title}"></h1><p class="hint" th:text="#{quality.hint}"></p><p class="ok" th:if="${message}" th:text="#{quality.saved}"></p><p class="error" th:if="${error}" th:text="#{quality.invalid}"></p><article class="card" th:each="plan:${plans}"><h2 th:text="${plan.formula.name}"></h2><p th:text="${plan.plannedDate}"></p><small th:text="${plan.id}"></small><div class="metric"><span th:text="#{ui.105}"></span><strong th:text="${plan.plannedQuantity}"></strong></div><div class="metric"><span th:text="#{ui.108}"></span><strong th:text="${plan.actualProducedQuantity}"></strong></div><div class="metric"><span th:text="#{ui.55}"></span><strong th:text="${plan.targetQuantity}"></strong></div><div class="metric"><span th:text="#{output.good}"></span><strong th:text="${plan.goodQuantity}"></strong></div><div class="metric"><span th:text="#{output.rejected}"></span><strong th:text="${plan.rejectedQuantity}"></strong></div><form th:if="${plan.qualityReviewedAt == null}" method="post" th:action="@{'/quality/'+${plan.id}+'/review'}"><label><span th:text="#{quality.note}"></span><textarea name="note" required maxlength="255"></textarea></label><button th:text="#{quality.save}"></button></form><div th:if="${plan.qualityReviewedAt != null}"><p th:text="#{quality.saved}"></p><p th:text="${plan.qualityReviewNote}"></p><small th:text="${plan.qualityReviewedBy + ' • ' + plan.qualityReviewedAt}"></small></div></article><p class="empty" th:if="${#lists.isEmpty(plans)}" th:text="#{quality.empty}"></p></main></section></div></body></html>
+<!doctype html>
+<html th:lang="${#locale.language}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title th:text="#{quality.title}"></title>
+    <link rel="stylesheet" href="/css/app.css" />
+    <script src="/js/app.js?v=20261030-2"></script>
+  </head>
+  <body class="workspace-page">
+    <div class="fb-shell">
+      <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
+      <section class="fb-content">
+        <div th:replace="~{fragments/topbar :: topbar}"></div>
+        <main>
+          <h1 th:text="#{quality.title}"></h1>
+          <p class="hint" th:text="#{quality.hint}"></p>
+          <p class="ok" th:if="${message}" th:text="#{quality.saved}"></p>
+          <p class="error" th:if="${error}" th:text="#{quality.invalid}"></p>
+          <article class="card" th:each="plan:${plans}">
+            <h2 th:text="${plan.formula.name}"></h2>
+            <p class="hint" th:text="${plan.formula.documentNo + ' · ' + plan.plannedDate}"></p>
+            <div class="fb-actions"><a class="fb-action" th:href="@{'/print/bom/'+${plan.formula.id}+'?batchSize='+${plan.plannedQuantity}}" target="_blank" th:text="#{quality.viewBom}">View BOM</a></div>
+            <div class="metric">
+              <span th:text="#{ui.105}"></span
+              ><strong th:text="${plan.plannedQuantity}"></strong>
+            </div>
+            <div class="metric">
+              <span th:text="#{ui.108}"></span
+              ><strong th:text="${plan.actualProducedQuantity}"></strong>
+            </div>
+            <div class="metric">
+              <span th:text="#{ui.55}"></span
+              ><strong th:text="${plan.targetQuantity}"></strong>
+            </div>
+            <div class="metric">
+              <span th:text="#{output.good}"></span
+              ><strong th:text="${plan.goodQuantity}"></strong>
+            </div>
+            <div class="metric">
+              <span th:text="#{output.rejected}"></span
+              ><strong th:text="${plan.rejectedQuantity}"></strong>
+            </div>
+            <div class="metric">
+              <span th:text="#{quality.lossAllowance}">Loss allowance</span
+              ><strong th:text="${plan.lossAllowanceQuantity}"></strong>
+            </div>
+            <form
+              th:if="${plan.qualityReviewedAt == null}"
+              method="post"
+              th:action="@{'/quality/'+${plan.id}+'/review'}"
+            >
+              <label
+                ><span th:text="#{quality.note}"></span
+                ><textarea
+                  name="note"
+                  required
+                  maxlength="255"
+                ></textarea></label
+              ><button th:text="#{quality.save}"></button>
+            </form>
+            <div th:if="${plan.qualityReviewedAt != null}">
+              <p th:text="#{quality.saved}"></p>
+              <p th:text="${plan.qualityReviewNote}"></p>
+              <small
+                th:text="${plan.qualityReviewedBy + ' • ' + plan.qualityReviewedAt}"
+              ></small>
+            </div>
+          </article>
+          <p
+            class="empty"
+            th:if="${#lists.isEmpty(plans)}"
+            th:text="#{quality.empty}"
+          ></p>
+        </main>
+      </section>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+.step-row {
+  grid-template-columns: minmax(180px, 1.25fr) minmax(180px, 1.25fr) minmax(120px, .8fr) minmax(125px, .85fr) minmax(90px, .55fr) minmax(90px, .55fr) auto;
+}
+
+@media (max-width: 1200px) {
+  .step-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 800px) {
+  .step-row { grid-template-columns: 1fr 1fr; }
+  .step-row input[name="stepInstructionsThai"],
+  .step-row input[name="stepInstructionsEnglish"] { grid-column: 1 / -1; }
+}

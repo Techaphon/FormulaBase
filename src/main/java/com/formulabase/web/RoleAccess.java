@@ -22,9 +22,12 @@ public class RoleAccess implements WebMvcConfigurer {
                 if (user.getRole() == UserRole.CEO) return true;
                 boolean read = request.getMethod().equals("GET");
                 boolean allowed = path.equals("/") || path.equals("/workflow") || path.equals("/logout");
-                if (user.getRole() == UserRole.QC) allowed |= path.startsWith("/quality") || path.startsWith("/materials") || (path.startsWith("/formulas") && !path.endsWith("/confirm")) || (read && path.startsWith("/print/bom/"));
+                if (user.getRole() == UserRole.QC) allowed |= path.startsWith("/quality") || path.startsWith("/materials")
+                        || path.startsWith("/audit") || (path.startsWith("/formulas") && !path.endsWith("/confirm"))
+                        || (read && path.startsWith("/print/bom/"));
                 if (user.getRole() == UserRole.PC) allowed |= path.startsWith("/planning") || path.startsWith("/history") || (read && (path.equals("/formulas") || path.startsWith("/print/")));
-                if (user.getRole() == UserRole.WORKER) allowed |= path.startsWith("/worker/") || (read && path.startsWith("/print/work-order/"));
+                if (user.getRole() == UserRole.WORKER) allowed |= path.startsWith("/worker/")
+                        || (read && (path.startsWith("/print/work-order/") || path.startsWith("/print/bom/")));
                 if (!allowed) {
                     if (read) response.sendRedirect("/");
                     else response.sendError(403);

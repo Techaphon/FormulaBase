@@ -1,1 +1,138 @@
-<!doctype html><html th:lang="${#locale.language}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261031-4"></script><title>Edit Formula</title></head><body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main><h1>Edit draft formula</h1><p class="hint">Existing formulas keep their original basis until you deliberately change it.</p><form method="post" th:action="@{'/formulas/'+${formula.id}+'/edit'}"><label>Document No.<input name="documentNo" th:value="${formula.documentNo}" required></label><label>Formula name<input name="name" th:value="${formula.name}" required></label><section class="fb-panel"><h2>Calculation basis</h2><label>Formula definition<select name="calculationBasis" id="calculationBasis" onchange="syncBasis()"><option value="PERCENT_W_W" th:selected="${formula.calculationBasis.name() == 'PERCENT_W_W'}">% w/w</option><option value="PER_PRODUCT_UNIT" th:selected="${formula.calculationBasis.name() == 'PER_PRODUCT_UNIT'}">Quantity per 1 product unit (legacy)</option></select></label><label>Finished product net weight / piece (g)<input name="productUnitWeightGrams" id="productUnitWeightGrams" type="number" step="0.000001" min="0.000001" th:value="${formula.productUnitWeightGrams}"></label><p class="hint">% w/w must total 100%; it is calculated against planned product pieces × net weight per piece.</p></section><h2 id="materialsTitle">Materials</h2><div th:each="item:${formula.materials}" class="row"><select name="materialIds"><option th:each="m:${materials}" th:value="${m.id}" th:text="${m.code+' · '+m.name}" th:selected="${m.id==item.material.id}"></option></select><select name="materialPhases" required><option th:each="phase:${phases}" th:value="${phase}" th:text="${phase+' · '+phase.description}" th:selected="${phase==item.phase}"></option></select><input class="percent-input" name="percentages" type="number" min="0" max="100" step="0.000001" th:value="${item.percentage}"><input class="quantity-input" name="quantitiesPerUnit" type="number" min="0" step="0.00000001" th:value="${item.quantityPerUnit}"></div><button>Save revision</button></form><script>function syncBasis(){const percent=document.getElementById('calculationBasis').value==='PERCENT_W_W';document.getElementById('productUnitWeightGrams').disabled=!percent;document.getElementById('productUnitWeightGrams').required=percent;document.getElementById('materialsTitle').textContent=percent?'Materials (% w/w)':'Materials per 1 product unit';document.querySelectorAll('.percent-input').forEach(i=>{i.disabled=!percent;i.required=percent;});document.querySelectorAll('.quantity-input').forEach(i=>{i.disabled=percent;i.required=!percent;});}syncBasis();</script></main></section></div></body></html>
+<!doctype html>
+<html th:lang="${#locale.language}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/formula-steps.css" />
+    <script src="/js/app.js?v=20261031-4"></script>
+    <title th:text="#{formula.editTitle}">Edit Formula</title>
+  </head>
+  <body class="workspace-page">
+    <div class="fb-shell">
+      <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
+      <section class="fb-content">
+        <div th:replace="~{fragments/topbar :: topbar}"></div>
+        <main>
+          <h1 th:text="#{formula.editTitle}">Edit draft formula</h1>
+          <p class="hint" th:text="#{formula.existingBasisHint}"></p>
+          <form method="post" th:action="@{'/formulas/'+${formula.id}+'/edit'}">
+            <label
+              ><span th:text="#{formula.documentNo}">Document No.</span><input
+                name="documentNo"
+                th:value="${formula.documentNo}"
+                required /></label
+            ><label
+              ><span th:text="#{formula.name}">Formula name</span><input
+                name="name"
+                th:value="${formula.name}"
+                required
+            /></label>
+            <section class="fb-panel">
+              <h2 th:text="#{formula.calculationBasis}">Calculation basis</h2>
+              <label
+                ><span th:text="#{formula.definition}">Formula definition</span><select
+                  name="calculationBasis"
+                  id="calculationBasis"
+                  onchange="syncBasis()"
+                >
+                  <option
+                    value="PERCENT_W_W"
+                    th:selected="${formula.calculationBasis.name() == 'PERCENT_W_W'}"
+                    th:text="#{formula.percentRecommended}">% w/w</option>
+                  <option
+                    value="PER_PRODUCT_UNIT"
+                    th:selected="${formula.calculationBasis.name() == 'PER_PRODUCT_UNIT'}"
+                    th:text="#{formula.perUnitLegacy}">Quantity per 1 product unit (legacy)</option>
+                </select></label
+              ><label
+                ><span th:text="#{formula.netWeight}">Finished product net weight / piece (g)</span><input
+                  name="productUnitWeightGrams"
+                  id="productUnitWeightGrams"
+                  type="number"
+                  step="0.000001"
+                  min="0.000001"
+                  th:value="${formula.productUnitWeightGrams}"
+              /></label>
+              <p class="hint">
+                <span th:text="#{formula.percentHelp}">% w/w must total 100%; it is calculated against planned product pieces × net weight per piece.</span>
+              </p>
+            </section>
+            <h2 id="materialsTitle" th:text="#{formula.materialsPercent}" th:attr="data-percent-label=#{formula.materialsPercent},data-unit-label=#{formula.materialsPerUnit}">Materials</h2>
+            <div th:each="item:${formula.materials}" class="row">
+              <select name="materialIds">
+                <option
+                  th:each="m:${materials}"
+                  th:value="${m.id}"
+                  th:text="${m.code+' · '+m.name}"
+                  th:selected="${m.id==item.material.id}"
+                ></option></select
+              ><select name="materialPhases" required>
+                <option
+                  th:each="phase:${phases}"
+                  th:value="${phase}"
+                  th:text="${phase+' · '+phase.descriptionFor(#locale.language)}"
+                  th:selected="${phase==item.phase}"
+                ></option></select
+              ><input
+                class="percent-input"
+                name="percentages"
+                type="number"
+                min="0"
+                max="100"
+                step="0.000001"
+                th:value="${item.percentage}"
+              /><input
+                class="quantity-input"
+                name="quantitiesPerUnit"
+                type="number"
+                min="0"
+                step="0.00000001"
+                th:value="${item.quantityPerUnit}"
+              />
+            </div>
+            <section class="fb-panel">
+              <h2 th:text="#{formula.instructions}">Production steps</h2>
+              <p class="hint" th:text="#{formula.stepHelp}"></p>
+              <div th:each="step:${formula.steps}" class="row step-row">
+                <input name="stepInstructionsThai" th:value="${step.instructionFor('th')}" th:placeholder="#{formula.instructionThai}" />
+                <input name="stepInstructionsEnglish" th:value="${step.instructionFor('en')}" th:placeholder="#{formula.instructionEnglish}" />
+                <input name="stepTargetMinutes" type="number" min="1" step="1" th:value="${step.targetSeconds == null ? null : step.targetSeconds / 60}" th:placeholder="#{formula.targetMinutes}" />
+                <select name="stepRequiresTemperature">
+                  <option value="false" th:selected="${!step.requiresTemperature}" th:text="#{formula.temperatureNotRequired}">Temperature not required</option>
+                  <option value="true" th:selected="${step.requiresTemperature}" th:text="#{formula.temperatureRequired}">Temperature required</option>
+                </select>
+                <input name="stepTemperatureMinimums" type="number" step="0.01" th:value="${step.temperatureMinC}" th:placeholder="#{formula.temperatureMin}" />
+                <input name="stepTemperatureMaximums" type="number" step="0.01" th:value="${step.temperatureMaxC}" th:placeholder="#{formula.temperatureMax}" />
+              </div>
+              <p class="hint" th:if="${#lists.isEmpty(formula.steps)}" th:text="#{formula.noStepsRevision}">This formula has no production steps.</p>
+            </section>
+            <button th:text="#{formula.saveRevision}">Save revision</button>
+          </form>
+          <script>
+            function syncBasis() {
+              const percent =
+                document.getElementById("calculationBasis").value ===
+                "PERCENT_W_W";
+              document.getElementById("productUnitWeightGrams").disabled =
+                !percent;
+              document.getElementById("productUnitWeightGrams").required =
+                percent;
+              const title = document.getElementById("materialsTitle");
+              title.textContent = percent ? title.dataset.percentLabel : title.dataset.unitLabel;
+              document.querySelectorAll(".percent-input").forEach((i) => {
+                i.disabled = !percent;
+                i.required = percent;
+              });
+              document.querySelectorAll(".quantity-input").forEach((i) => {
+                i.disabled = percent;
+                i.required = !percent;
+              });
+            }
+            syncBasis();
+          </script>
+        </main>
+      </section>
+    </div>
+  </body>
+</html>
