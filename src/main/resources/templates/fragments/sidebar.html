@@ -1,16 +1,18 @@
 <aside th:fragment="sidebar" class="fb-sidebar">
-<a class="fb-sidebar-brand" href="/workflow"><span class="fb-brand-mark">F</span><span><strong>Formula Base</strong><small th:text="#{ui.12}"></small></span></a>
-<nav aria-label="Navigation" th:aria-label="#{ui.13}">
-<span class="fb-nav-label" th:text="#{ui.13}"></span>
-<a href="/workflow"><span aria-hidden="true">◫</span><span th:text="#{ui.11}"></span></a>
-<a href="/formulas"><span aria-hidden="true">⚗</span><span th:text="#{ui.18}"></span></a>
-<a th:if="${canManageFormula}" href="/materials"><span aria-hidden="true">◇</span><span th:text="#{ui.20}"></span></a>
-<a th:if="${canManageFormula}" href="/quality"><span aria-hidden="true">✓</span><span th:text="#{quality.title}"></span></a>
-<a th:if="${isCeo}" href="/users"><span aria-hidden="true">◉</span><span th:text="#{nav.users}">Users</span></a>
-<a th:if="${canManageFormula}" href="/audit"><span aria-hidden="true">◷</span><span th:text="${isCeo ? #messages.msg('audit.title') : #messages.msg('nav.formulaHistory')}">Audit log</span></a>
-<a th:if="${isCeo or canPlan}" href="/history"><span aria-hidden="true">▤</span><span th:text="#{nav.productionHistory}">Production history</span></a>
-<span class="fb-nav-label" th:if="${canPlan or canExecute}" th:text="#{ui.14}"></span>
-<a th:if="${canPlan}" href="/planning"><span aria-hidden="true">▦</span><span th:text="#{ui.21}"></span></a>
-<a th:if="${canExecute}" href="/worker/tasks"><span aria-hidden="true">▷</span><span th:text="#{ui.23}"></span></a>
-</nav><div class="fb-sidebar-footer"><small>Formula Base MES</small><p th:text="${session.FORMULA_BASE_USERNAME}"></p></div>
+  <a class="fb-sidebar-brand" href="/workflow"><span class="fb-brand-mark">F</span><span><strong>Formula Base</strong><small th:text="#{ui.12}">Production workspace</small></span></a>
+  <nav aria-label="Navigation" th:aria-label="#{ui.13}">
+    <span class="fb-nav-label" th:text="#{nav.myWork}">MY WORK</span>
+    <a href="/workflow" th:classappend="${currentPath=='/workflow'?'active':''}"><span class="nav-icon" aria-hidden="true">⌂</span><span th:text="#{ui.11}"></span></a>
+    <a th:if="${canManageFormula}" href="/formulas" th:classappend="${currentPath.startsWith('/formulas')?'active':''}"><span class="nav-icon" aria-hidden="true">01</span><span th:text="#{ui.18}"></span></a>
+    <a th:if="${canManageFormula}" href="/materials" th:classappend="${currentPath.startsWith('/materials')?'active':''}"><span class="nav-icon" aria-hidden="true">02</span><span th:text="#{ui.20}"></span></a>
+    <a th:if="${canManageFormula}" href="/quality" th:classappend="${currentPath.startsWith('/quality')?'active':''}"><span class="nav-icon" aria-hidden="true">03</span><span th:text="#{quality.title}"></span></a>
+    <a th:if="${canPlan}" href="/planning" th:classappend="${currentPath.startsWith('/planning')?'active':''}"><span class="nav-icon" aria-hidden="true">04</span><span th:text="#{ui.21}"></span></a>
+    <a th:if="${canExecute and not isCeo}" href="/worker/tasks" th:classappend="${currentPath.startsWith('/worker')?'active':''}"><span class="nav-icon" aria-hidden="true">05</span><span th:text="#{ui.23}"></span></a>
+    <span class="fb-nav-label" th:if="${isCeo or canPlan}" th:text="#{nav.records}">RECORDS</span>
+    <a th:if="${isCeo or canPlan}" href="/history" th:classappend="${currentPath.startsWith('/history')?'active':''}"><span class="nav-icon" aria-hidden="true">↗</span><span th:text="#{nav.productionHistory}">Production history</span></a>
+    <a th:if="${canManageFormula}" href="/audit" th:classappend="${currentPath.startsWith('/audit')?'active':''}"><span class="nav-icon" aria-hidden="true">≡</span><span th:text="${isCeo ? #messages.msg('audit.title') : #messages.msg('nav.formulaHistory')}">Audit log</span></a>
+    <span class="fb-nav-label" th:if="${isCeo}" th:text="#{nav.administration}">ADMINISTRATION</span>
+    <a th:if="${isCeo}" href="/users" th:classappend="${currentPath.startsWith('/users')?'active':''}"><span class="nav-icon" aria-hidden="true">◎</span><span th:text="#{nav.users}">Users</span></a>
+  </nav>
+  <div class="fb-sidebar-footer"><small th:text="${currentUser.fullName}">Account</small><p th:text="${#messages.msg('role.'+currentUser.role)}">Role</p></div>
 </aside>

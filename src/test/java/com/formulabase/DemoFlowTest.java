@@ -78,6 +78,20 @@ class DemoFlowTest {
         assertEquals(FormulaStatus.CONFIRMED, formula.getStatus());
     }
 
+    @Test void ceoMayConfirmOwnDraftWithReasonButNotAnotherUsersDraft() {
+        var qc = users.findByUsernameIgnoreCase("qc").orElseThrow();
+        var ceo = users.findByUsernameIgnoreCase("ceo").orElseThrow();
+        var own = formulas.createWithSteps("SELF-001", "Own formula", List.of(""), List.of("SELF-RM"),
+                List.of("Water"), List.of("G"), List.of(BigDecimal.ONE), null, null, null, ceo);
+        assertThrows(IllegalArgumentException.class, () -> formulas.confirmOwnDraft(own.getId(), "", ceo));
+        assertEquals(FormulaStatus.DRAFT, own.getStatus());
+        formulas.confirmOwnDraft(own.getId(), "Reviewed in person", ceo);
+        assertEquals(FormulaStatus.CONFIRMED, own.getStatus());
+        var other = formulas.createWithSteps("OTHER-001", "QC formula", List.of(""), List.of("OTHER-RM"),
+                List.of("Water"), List.of("G"), List.of(BigDecimal.ONE), null, null, null, qc);
+        assertThrows(IllegalStateException.class, () -> formulas.confirmOwnDraft(other.getId(), "Reviewed", ceo));
+    }
+
     @Test void percentFormulaCalculatesRawMaterialMassFromPlannedPieces() {
         var qc = users.findByUsernameIgnoreCase("qc").orElseThrow();
         var ceo = users.findByUsernameIgnoreCase("ceo").orElseThrow();
@@ -161,13 +175,14 @@ class DemoFlowTest {
         assertEquals(ExecutionStatus.COMPLETED, execution.getStatus());
     }
 
-    @Test void legacyTemperatureStepCannotBeCompletedUntilQcSetsALimit() {
+    @Test void stepWithoutQcTemperatureLimitsDoesNotRequireWorkerTemperature() {
         var worker = users.findByUsernameIgnoreCase("worker1").orElseThrow();
         var formula = new Formula("TEMP-LEGACY-001", "Legacy temperature test");
         formula.addStep(1, "Legacy heat instruction", 600, true);
         var execution = new StepExecution(null, formula.getSteps().get(0));
         execution.start(worker);
 
-        assertThrows(IllegalStateException.class, () -> execution.complete(new BigDecimal("70")));
+        execution.complete(null);
+        assertEquals(ExecutionStatus.COMPLETED, execution.getStatus());
     }
 }

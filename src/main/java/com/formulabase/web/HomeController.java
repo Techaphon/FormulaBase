@@ -27,6 +27,8 @@ public class HomeController {
         if (session.getAttribute("FORMULA_BASE_USERNAME") == null) return "redirect:/login";
         var user = sessions.current(session);
         if (user == null) return "redirect:/login";
+        LocalDate today = LocalDate.now();
+        model.addAttribute("today", today);
         if (user.getRole() == com.formulabase.domain.UserRole.WORKER) return "redirect:/worker/tasks";
         if (user.getRole() != com.formulabase.domain.UserRole.CEO) {
             if (user.getRole() == com.formulabase.domain.UserRole.QC) {
@@ -37,7 +39,6 @@ public class HomeController {
             }
             return "workflow/role";
         }
-        LocalDate today = LocalDate.now();
         model.addAttribute("snapshot", workflowService.snapshot(today));
         model.addAttribute("pendingApprovals", workflowService.pendingApprovals());
         model.addAttribute("draftCycles", workflowService.draftCycles());

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/app.css?v=20261106-feedback1" />
     <script src="/js/app.js?v=20261101-2"></script>
     <title th:text="#{ui.103}">Batch Execution</title>
   </head>
@@ -13,17 +13,21 @@
       <p><a href="/worker/tasks" th:text="#{ui.104}">← My tasks</a></p>
       <article class="card">
       <h1 th:text="${plan.formula.name}"></h1>
+      <p class="hint" th:text="${plan.formula.documentNo+' · Rev '+plan.formula.revision+' · '+plan.plannedDate}"></p>
       <div class="fb-actions">
-        <a class="fb-action" th:href="${bomHref}" target="_blank" th:text="#{worker.previewBom}">Preview BOM</a>
         <a class="fb-action" th:href="@{'/print/work-order/'+${plan.id}}" target="_blank" th:text="#{worker.printWorkOrder}">Print work order</a>
       </div>
         <div class="metric">
-          <span th:text="#{worker.target}">Target</span
+          <span th:text="#{worker.target}">Customer target</span
           ><strong th:text="${plan.targetQuantity+' '+#messages.msg('unit.piece')}"></strong>
         </div>
         <div class="metric" th:if="${plan.plannedQuantity!=null}">
           <span th:text="#{worker.planned}">Planned</span
           ><strong th:text="${plan.plannedQuantity+' '+#messages.msg('unit.piece')}"></strong>
+        </div>
+        <div class="metric" th:if="${plan.plannedQuantity!=null and plan.lossAllowanceQuantity!=null}">
+          <span th:text="#{worker.lossAllowanceQuantity}">Loss allowance</span
+          ><strong th:text="${plan.lossAllowanceQuantity+' '+#messages.msg('unit.piece')}"></strong>
         </div>
         <div class="metric">
           <span th:text="#{common.status}">Status</span
@@ -71,18 +75,18 @@
         </section>
         <section th:if="${not #lists.isEmpty(steps)}">
           <h2 th:text="#{worker.steps}">Production steps</h2>
-          <article class="card" th:each="execution:${steps}">
+          <article class="card worker-step-card" th:each="execution:${steps}" th:classappend="${execution.id == nextStartStepId and plan.status.name()=='IN_PROGRESS' ? 'current-step' : ''}">
             <strong
               th:text="${execution.step.stepNumber+'. '+execution.step.instructionFor(#locale.language)}"
             ></strong>
             <p>
               <span th:text="#{worker.stepTarget}">Target</span>:
               <span
-                th:text="${execution.step.targetSeconds==null?'-':execution.step.targetSeconds / 60 + ' ' + #messages.msg('formula.targetMinutes')}"
+                th:text="${execution.step.targetSeconds==null?'-':execution.step.targetSeconds / 60 + ' ' + #messages.msg('unit.minute')}"
               ></span>
               · <span th:text="#{worker.stepTemperature}">Temperature</span>:
               <span
-                th:text="${execution.step.requiresTemperature ? (execution.step.temperatureMinC != null and execution.step.temperatureMaxC != null ? execution.step.temperatureMinC + '–' + execution.step.temperatureMaxC + ' °C' : execution.step.temperatureMinC != null ? '≥ ' + execution.step.temperatureMinC + ' °C' : '≤ ' + execution.step.temperatureMaxC + ' °C') : #messages.msg('common.optional')}"
+                th:text="${execution.step.requiresTemperature ? (execution.step.temperatureMinC != null and execution.step.temperatureMaxC != null ? execution.step.temperatureMinC + '–' + execution.step.temperatureMaxC + ' °C' : execution.step.temperatureMinC != null ? '≥ ' + execution.step.temperatureMinC + ' °C' : '≤ ' + execution.step.temperatureMaxC + ' °C') : #messages.msg('common.notRequired')}"
               ></span>
             </p>
             <p>
@@ -118,7 +122,7 @@
               method="post"
               th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/complete'}"
             >
-              <label
+              <label th:if="${execution.step.requiresTemperature}"
                 ><span th:text="#{worker.temperature}">Temperature (°C)</span><input
                   name="temperature"
                   type="number"

@@ -192,7 +192,7 @@
                 –
               </td>
               <td
-                th:text="${step.requiresTemperature ? (step.temperatureMinC != null and step.temperatureMaxC != null ? step.temperatureMinC + '–' + step.temperatureMaxC + ' °C' : step.temperatureMinC != null ? '≥ ' + step.temperatureMinC + ' °C' : '≤ ' + step.temperatureMaxC + ' °C') : #messages.msg('common.notRequired')}"
+                th:text="${step.requiresTemperature ? (step.temperatureMinC != null and step.temperatureMaxC != null ? step.temperatureMinC + '–' + step.temperatureMaxC + ' °C' : step.temperatureMinC != null ? '≥ ' + step.temperatureMinC + ' °C' : step.temperatureMaxC != null ? '≤ ' + step.temperatureMaxC + ' °C' : #messages.msg('common.notSpecified')) : #messages.msg('common.notRequired')}"
               >
                 RT
               </td>

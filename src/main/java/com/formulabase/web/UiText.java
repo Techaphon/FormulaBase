@@ -17,6 +17,7 @@ Map.entry("Formula confirmed by CEO","CEO ยืนยันสูตรแล�
 Map.entry("Invalid username or password","ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"),
 Map.entry("Document number and formula name are required","กรอกเลขเอกสารและชื่อสูตร"),
 Map.entry("Document number already exists","เลขเอกสารนี้มีอยู่แล้ว"),
+Map.entry("Enter a reason for the formula revision","กรุณาระบุเหตุผลที่แก้ไขสูตร"),
 Map.entry("At least one material row is required","เพิ่มวัตถุดิบอย่างน้อยหนึ่งรายการ"),
 Map.entry("Select an existing material or fill in new material code, name and unit","เลือกวัตถุดิบเดิมหรือกรอกรหัส ชื่อ และหน่วยให้ครบ"),
 Map.entry("Invalid material unit","หน่วยวัตถุดิบไม่ถูกต้อง"),
@@ -125,5 +126,45 @@ Map.entry("The request could not be completed. Please return to the application 
  if(text.startsWith("Temperature must be at least "))return "อุณหภูมิต้องไม่น้อยกว่า "+text.substring("Temperature must be at least ".length());
  if(text.startsWith("Temperature must not exceed "))return "อุณหภูมิต้องไม่เกิน "+text.substring("Temperature must not exceed ".length());
  return TH.getOrDefault(text,"ไม่สามารถดำเนินการได้ กรุณาตรวจข้อมูลที่กรอก");
+ }
+
+ public String auditAction(String action, String language) {
+  if (action == null) return "";
+  if (!"th".equals(language)) return switch (action) {
+   case "CREATE_FORMULA" -> "Create formula"; case "SUBMIT_FORMULA" -> "Submit formula for approval";
+   case "CONFIRM_FORMULA" -> "Confirm formula"; case "CREATE_FORMULA_REVISION" -> "Create formula revision";
+   case "REJECT_FORMULA" -> "Reject formula"; case "EDIT_FORMULA" -> "Edit formula"; case "DELETE_FORMULA" -> "Delete formula";
+   case "CREATE_MATERIAL" -> "Add material"; case "DELETE_MATERIAL" -> "Delete material";
+   case "CREATE_PLANNING_CYCLE" -> "Create monthly plan"; case "CREATE_PRODUCTION_PLAN" -> "Add production task";
+   case "LOCK_PLANNING_CYCLE" -> "Lock monthly plan"; case "RESCHEDULE_PLAN" -> "Edit production schedule";
+   case "CANCEL_PLAN" -> "Cancel production task"; case "START_BATCH" -> "Start batch";
+   case "START_STEP" -> "Start production step"; case "COMPLETE_STEP" -> "Complete production step";
+   case "COMPLETE_STEP_OVERDUE" -> "Complete step after target time"; case "ACKNOWLEDGE_OVERDUE" -> "Acknowledge overdue alert";
+   case "COMPLETE_BATCH" -> "Record batch output"; case "QUALITY_REVIEW" -> "Review batch quality";
+   case "CREATE_USER" -> "Create user"; case "TOGGLE_USER" -> "Change user status";
+   case "OPEN_BOM_PRINT_PREVIEW" -> "Open BOM print preview"; case "OPEN_WORK_ORDER_PRINT_PREVIEW" -> "Open work order print preview";
+   default -> action.replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+  };
+  return switch (action) {
+   case "CREATE_FORMULA" -> "สร้างสูตร"; case "SUBMIT_FORMULA" -> "ส่งสูตรให้อนุมัติ";
+   case "CONFIRM_FORMULA" -> "ยืนยันสูตร"; case "CREATE_FORMULA_REVISION" -> "สร้างฉบับแก้ไขสูตร";
+   case "REJECT_FORMULA" -> "ปฏิเสธสูตร"; case "EDIT_FORMULA" -> "แก้ไขสูตร"; case "DELETE_FORMULA" -> "ลบสูตร";
+   case "CREATE_MATERIAL" -> "เพิ่มวัตถุดิบ"; case "DELETE_MATERIAL" -> "ลบวัตถุดิบ";
+   case "CREATE_PLANNING_CYCLE" -> "สร้างแผนรายเดือน"; case "CREATE_PRODUCTION_PLAN" -> "เพิ่มงานผลิต";
+   case "LOCK_PLANNING_CYCLE" -> "ล็อกแผนรายเดือน"; case "RESCHEDULE_PLAN" -> "แก้ไขกำหนดการผลิต";
+   case "CANCEL_PLAN" -> "ยกเลิกงานผลิต"; case "START_BATCH" -> "เริ่มผลิต Batch";
+   case "START_STEP" -> "เริ่มขั้นตอนผลิต"; case "COMPLETE_STEP" -> "จบขั้นตอนผลิต";
+   case "COMPLETE_STEP_OVERDUE" -> "จบขั้นตอนหลังเกินเวลา"; case "ACKNOWLEDGE_OVERDUE" -> "รับทราบแจ้งเตือนเกินเวลา";
+   case "COMPLETE_BATCH" -> "บันทึกผลผลิต Batch"; case "QUALITY_REVIEW" -> "ตรวจสอบคุณภาพ Batch";
+   case "CREATE_USER" -> "สร้างผู้ใช้"; case "TOGGLE_USER" -> "เปลี่ยนสถานะผู้ใช้";
+   case "OPEN_BOM_PRINT_PREVIEW" -> "เปิดตัวอย่างพิมพ์ BOM"; case "OPEN_WORK_ORDER_PRINT_PREVIEW" -> "เปิดตัวอย่างพิมพ์ใบสั่งผลิต";
+   default -> action.replace('_', ' ').toLowerCase(java.util.Locale.ROOT);
+  };
+ }
+
+ public String auditSubject(String subject, String language) {
+  if (subject == null) return "";
+  if (!"th".equals(language)) return switch (subject) { case "FORMULA" -> "Formula"; case "PLAN" -> "Production task"; case "STEP" -> "Production step"; case "CYCLE" -> "Monthly plan"; case "MATERIAL" -> "Material"; case "USER" -> "User"; default -> subject; };
+  return switch (subject) { case "FORMULA" -> "สูตร"; case "PLAN" -> "งานผลิต"; case "STEP" -> "ขั้นตอนผลิต"; case "CYCLE" -> "แผนรายเดือน"; case "MATERIAL" -> "วัตถุดิบ"; case "USER" -> "ผู้ใช้"; default -> subject; };
  }
 }

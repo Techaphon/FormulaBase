@@ -1,9 +1,9 @@
 <!doctype html>
 <div th:fragment="topbar" class="fb-topbar">
     <script defer src="/js/csrf.js?v=20261031-1"></script>
-    <a class="fb-brand" href="/workflow"><span class="fb-brand-mark">⚗</span><span>Formula Base</span></a>
+    <div class="fb-topbar-title"><span class="fb-brand-mark">F</span><span><strong>Formula Base</strong><small th:if="${currentUser != null}" th:text="${currentUser.fullName+' · '+#messages.msg('role.'+currentUser.role)}"></small></span></div>
     <div class="fb-topbar-actions" aria-label="Display preferences" th:aria-label="#{ui.113}">
-        <form th:if="${session.FORMULA_BASE_USERNAME != null}" method="post" action="/logout" style="margin:0;padding:0;border:0"><button th:text="#{ui.5}">Logout</button></form>
+        <form th:if="${session.FORMULA_BASE_USERNAME != null}" method="post" action="/logout" class="topbar-logout"><button th:text="#{ui.5}">Logout</button></form>
         <div class="fb-language" role="group" aria-label="Language" th:aria-label="#{ui.111}">
             <button type="button" data-lang="th" onclick="fbSetLanguage('th')">TH</button>
             <button type="button" data-lang="en" onclick="fbSetLanguage('en')">EN</button>

@@ -8,4 +8,4 @@ public class FormulaBaseApplication {
     public static void main(String[] args) {
         SpringApplication.run(FormulaBaseApplication.class, args);
     }
-}
+}   

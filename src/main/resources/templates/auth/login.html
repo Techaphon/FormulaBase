@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" th:lang="${#locale.language}">
   <head>
-    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/app.css?v=20261106-feedback1" />
     <script src="/js/app.js?v=20261030-2"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -35,13 +35,13 @@
                 th:placeholder="#{ui.9}" /></label
             ><label
               ><span th:text="#{ui.3}">Password</span
-              ><input
+              ><span class="password-field"><input
                 name="password"
                 type="password"
                 required
                 autocomplete="current-password"
                 placeholder="Enter your password"
-                th:placeholder="#{ui.10}" /></label
+                th:placeholder="#{ui.10}" /><button class="password-toggle" type="button" onclick="const f=this.previousElementSibling;f.type=f.type==='password'?'text':'password';this.textContent=f.type==='password'?'◉':'◎'" th:aria-label="#{login.togglePassword}">◉</button></span></label
             ><button type="submit" th:text="#{ui.4}">Sign in</button>
           </form>
           <div class="login-demo" th:if="${demoPassword}">

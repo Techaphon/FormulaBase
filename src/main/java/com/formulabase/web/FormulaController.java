@@ -21,6 +21,7 @@ import java.util.UUID;
 @Controller
 @RequestMapping("/formulas")
 public class FormulaController {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FormulaController.class);
     private final FormulaService service;
     private final MaterialRepository materialRepository;
     private final SessionHelper sessionHelper;
@@ -31,7 +32,8 @@ public class FormulaController {
     }
 
     @GetMapping
-    public String list(@RequestParam(required = false) String keyword, @RequestParam(required = false) com.formulabase.domain.FormulaStatus status, HttpSession session, Model model) {
+    public String list(@RequestParam(required = false) String keyword, @RequestParam(required = false) com.formulabase.domain.FormulaStatus status,
+                       HttpSession session, Model model) {
         if (sessionHelper.current(session) == null) return "redirect:/login";
         var user = sessionHelper.current(session);
         var formulas = user.getRole() == com.formulabase.domain.UserRole.PC
@@ -41,7 +43,23 @@ public class FormulaController {
                             || f.getStatus() == com.formulabase.domain.FormulaStatus.CONFIRMED
                             || f.getStatus() == com.formulabase.domain.FormulaStatus.REJECTED).toList()
                     : service.findAll();
-        model.addAttribute("formulas", formulas.stream().filter(f -> (keyword == null || keyword.isBlank() || f.getName().toLowerCase().contains(keyword.toLowerCase()) || f.getDocumentNo().toLowerCase().contains(keyword.toLowerCase())) && (status == null || f.getStatus() == status)).toList());
+        String query = keyword == null ? "" : keyword.trim().toLowerCase();
+        var groups = formulas.stream().collect(java.util.stream.Collectors.groupingBy(
+                f -> f.getDocumentNo().replaceFirst("-R\\d+$", "")));
+        var formulaGroups = groups.entrySet().stream()
+                .map(entry -> {
+                    var versions = entry.getValue().stream()
+                            .sorted(java.util.Comparator.comparingInt(com.formulabase.domain.Formula::getRevision).reversed())
+                            .toList();
+                    return new FormulaGroup(entry.getKey(), versions.get(0), versions);
+                })
+                .filter(group -> query.isEmpty() || group.getDocumentNo().toLowerCase().contains(query)
+                        || group.getLatest().getName().toLowerCase().contains(query)
+                        || group.getVersions().stream().anyMatch(version -> version.getDocumentNo().toLowerCase().contains(query)))
+                .filter(group -> status == null || group.getVersions().stream().anyMatch(version -> version.getStatus() == status))
+                .sorted(java.util.Comparator.comparing(group -> group.getLatest().getName().toLowerCase()))
+                .toList();
+        model.addAttribute("formulaGroups", formulaGroups);
         model.addAttribute("keyword", keyword == null ? "" : keyword); model.addAttribute("selectedStatus", status);
         model.addAttribute("statuses", user.getRole() == com.formulabase.domain.UserRole.QC
                 ? new com.formulabase.domain.FormulaStatus[]{com.formulabase.domain.FormulaStatus.PENDING_APPROVAL, com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED}
@@ -96,15 +114,22 @@ public class FormulaController {
     @PostMapping("/{id}/submit")
     public String submit(@PathVariable UUID id, HttpSession session, RedirectAttributes redirect) {
         try { service.submitForApproval(id, sessionHelper.current(session)); redirect.addFlashAttribute("message", "Formula submitted for CEO approval"); }
-        catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
+        catch (RuntimeException ex) { log.warn("Formula action failed: {}", ex.getMessage()); redirect.addFlashAttribute("error", ex.getMessage()); }
         return "redirect:/formulas";
     }
 
     @PostMapping("/{id}/confirm")
     public String confirm(@PathVariable UUID id, @RequestParam(required = false) String approvalReason, HttpSession session, RedirectAttributes redirect) {
         try { service.confirm(id, approvalReason, sessionHelper.current(session)); redirect.addFlashAttribute("message", "Formula confirmed by CEO"); }
-        catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
+        catch (RuntimeException ex) { log.warn("Formula action failed: {}", ex.getMessage()); redirect.addFlashAttribute("error", ex.getMessage()); }
         return "redirect:/formulas";
+    }
+
+    @PostMapping("/{id}/confirm-own-draft")
+    public String confirmOwnDraft(@PathVariable UUID id, @RequestParam String approvalReason, HttpSession session, RedirectAttributes redirect) {
+        try { service.confirmOwnDraft(id, approvalReason, sessionHelper.current(session)); redirect.addFlashAttribute("message", "Formula confirmed by CEO"); }
+        catch (RuntimeException ex) { log.warn("Formula action failed: {}", ex.getMessage()); redirect.addFlashAttribute("error", ex.getMessage()); }
+        return "redirect:/formulas/" + id;
     }
 
     @GetMapping("/{id}") public String detail(@PathVariable UUID id, HttpSession session, Model model) {
@@ -116,13 +141,23 @@ public class FormulaController {
                 && (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(user.getId()))) return "redirect:/formulas";
         if (user.getRole() == com.formulabase.domain.UserRole.QC
                 && formula.getStatus() == com.formulabase.domain.FormulaStatus.SUPERSEDED) return "redirect:/formulas";
-        model.addAttribute("formula", formula); return "formulas/view";
+        model.addAttribute("formula", formula);
+        String documentRoot = formula.getDocumentNo().replaceFirst("-R\\d+$", "");
+        model.addAttribute("formulaVersions", service.findAll().stream()
+                .filter(version -> version.getDocumentNo().replaceFirst("-R\\d+$", "").equals(documentRoot))
+                .filter(version -> user.getRole() != com.formulabase.domain.UserRole.QC
+                        || (version.getStatus() != com.formulabase.domain.FormulaStatus.SUPERSEDED
+                        && (version.getStatus() != com.formulabase.domain.FormulaStatus.DRAFT
+                        || (version.getCreatedBy() != null && version.getCreatedBy().getId().equals(user.getId())))))
+                .sorted(java.util.Comparator.comparingInt(com.formulabase.domain.Formula::getRevision).reversed())
+                .toList());
+        return "formulas/view";
     }
-    @PostMapping("/{id}/revise") public String revise(@PathVariable UUID id, HttpSession session, RedirectAttributes redirect){try{var revision=service.createRevision(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Created revision "+revision.getDocumentNo());return "redirect:/formulas/"+revision.getId()+"/edit";}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());return "redirect:/formulas/"+id;}}
+    @PostMapping("/{id}/revise") public String revise(@PathVariable UUID id, HttpSession session, RedirectAttributes redirect){try{var revision=service.createRevision(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Created revision "+revision.getDocumentNo());return "redirect:/formulas/"+revision.getId()+"/edit";}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());return "redirect:/formulas/"+id;}}
     @GetMapping("/{id}/edit") public String edit(@PathVariable UUID id,HttpSession session,Model model){var user=sessionHelper.current(session);if(user==null)return "redirect:/login";if(user.getRole()!=com.formulabase.domain.UserRole.QC&&user.getRole()!=com.formulabase.domain.UserRole.CEO)return "redirect:/formulas";var formula=service.get(id);if(user.getRole()==com.formulabase.domain.UserRole.QC&&(formula.getCreatedBy()==null||!formula.getCreatedBy().getId().equals(user.getId())))return "redirect:/formulas";model.addAttribute("formula",formula);model.addAttribute("materials",materialRepository.findAll());model.addAttribute("phases",com.formulabase.domain.FormulaPhase.values());model.addAttribute("calculationBases",FormulaCalculationBasis.values());return "formulas/edit";}
-    @PostMapping("/{id}/edit") public String update(@PathVariable UUID id,@RequestParam String documentNo,@RequestParam String name,@RequestParam List<String> materialIds,@RequestParam(required=false) List<String> materialPhases,@RequestParam(defaultValue="PER_PRODUCT_UNIT") FormulaCalculationBasis calculationBasis,@RequestParam(required=false) BigDecimal productUnitWeightGrams,@RequestParam(required=false) List<BigDecimal> percentages,@RequestParam(required=false) List<BigDecimal> quantitiesPerUnit,@RequestParam(required=false) List<String> stepInstructionsThai,@RequestParam(required=false) List<String> stepInstructionsEnglish,@RequestParam(required=false) List<Integer> stepTargetMinutes,@RequestParam(required=false) List<Boolean> stepRequiresTemperature,@RequestParam(required=false) List<BigDecimal> stepTemperatureMinimums,@RequestParam(required=false) List<BigDecimal> stepTemperatureMaximums,HttpSession session,RedirectAttributes redirect){try{service.updateDraftWithSteps(id,documentNo,name,materialIds,materialPhases,calculationBasis,productUnitWeightGrams,percentages,quantitiesPerUnit,stepInstructionsThai,stepInstructionsEnglish,toSeconds(stepTargetMinutes),stepRequiresTemperature,stepTemperatureMinimums,stepTemperatureMaximums,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula updated");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
-    @PostMapping("/{id}/reject") public String reject(@PathVariable UUID id,@RequestParam String reason,HttpSession session,RedirectAttributes redirect){try{service.reject(id,reason,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula rejected");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
-    @PostMapping("/{id}/delete") public String delete(@PathVariable UUID id,HttpSession session,RedirectAttributes redirect){try{service.deleteDraft(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula deleted");}catch(RuntimeException e){redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas";}
+    @PostMapping("/{id}/edit") public String update(@PathVariable UUID id,@RequestParam String documentNo,@RequestParam String name,@RequestParam List<String> materialIds,@RequestParam(required=false) List<String> materialPhases,@RequestParam(defaultValue="PER_PRODUCT_UNIT") FormulaCalculationBasis calculationBasis,@RequestParam(required=false) BigDecimal productUnitWeightGrams,@RequestParam(required=false) List<BigDecimal> percentages,@RequestParam(required=false) List<BigDecimal> quantitiesPerUnit,@RequestParam(required=false) List<String> stepInstructionsThai,@RequestParam(required=false) List<String> stepInstructionsEnglish,@RequestParam(required=false) List<Integer> stepTargetMinutes,@RequestParam(required=false) List<Boolean> stepRequiresTemperature,@RequestParam(required=false) List<BigDecimal> stepTemperatureMinimums,@RequestParam(required=false) List<BigDecimal> stepTemperatureMaximums,@RequestParam(required=false) String changeReason,HttpSession session,RedirectAttributes redirect){try{service.updateDraftWithSteps(id,documentNo,name,materialIds,materialPhases,calculationBasis,productUnitWeightGrams,percentages,quantitiesPerUnit,stepInstructionsThai,stepInstructionsEnglish,toSeconds(stepTargetMinutes),stepRequiresTemperature,stepTemperatureMinimums,stepTemperatureMaximums,sessionHelper.current(session),changeReason == null ? "" : changeReason);redirect.addFlashAttribute("message","Formula updated");}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
+    @PostMapping("/{id}/reject") public String reject(@PathVariable UUID id,@RequestParam String reason,HttpSession session,RedirectAttributes redirect){try{service.reject(id,reason,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula rejected");}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
+    @PostMapping("/{id}/delete") public String delete(@PathVariable UUID id,HttpSession session,RedirectAttributes redirect){try{service.deleteDraft(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula deleted");}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas";}
 
     /** The UI uses whole minutes; the existing domain stores seconds for precise elapsed-time comparison. */
     private List<Integer> toSeconds(List<Integer> minutes) {

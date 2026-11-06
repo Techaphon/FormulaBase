@@ -40,6 +40,7 @@ public class RoleAccess implements WebMvcConfigurer {
                 if (user == null) return;
                 var role = user.getRole();
                 model.addObject("currentUser", user);
+                model.addObject("currentPath", request.getServletPath());
                 model.addObject("canManageFormula", role == UserRole.CEO || role == UserRole.QC);
                 model.addObject("canPlan", role == UserRole.CEO || role == UserRole.PC);
                 model.addObject("isCeo", role == UserRole.CEO);

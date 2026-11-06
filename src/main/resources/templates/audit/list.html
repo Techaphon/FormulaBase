@@ -1,48 +1,6 @@
 <!doctype html>
-<html th:lang="${#locale.language}">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css" />
-    <script src="/js/app.js?v=20261031-1"></script>
-    <title th:text="#{audit.title}">Audit log</title>
-  </head>
-  <body class="workspace-page">
-    <div class="fb-shell">
-      <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
-      <section class="fb-content">
-        <div th:replace="~{fragments/topbar :: topbar}"></div>
-        <main>
-          <h1 th:text="#{audit.title}">Audit log</h1>
-          <form method="get">
-            <input
-              name="keyword"
-              th:value="${keyword}"
-              th:placeholder="#{audit.searchPlaceholder}"
-            /><button th:text="#{common.search}">Search</button>
-          </form>
-          <div class="table-scroll">
-            <table>
-              <tr>
-                <th th:text="#{common.time}">Time</th>
-                <th th:text="#{audit.actor}">Actor</th>
-                <th th:text="#{audit.action}">Action</th>
-                <th th:text="#{audit.subject}">Subject</th>
-                <th th:text="#{common.details}">Details</th>
-              </tr>
-              <tr th:each="log:${logs}">
-                <td th:text="${log.createdAt}"></td>
-                <td
-                  th:text="${log.actor==null?#messages.msg('common.system'):log.actor.username}"
-                ></td>
-                <td th:text="${log.action}"></td>
-                <td th:text="${log.subjectType}"></td>
-                <td th:text="${log.details}"></td>
-              </tr>
-            </table>
-          </div>
-        </main>
-      </section>
-    </div>
-  </body>
-</html>
+<html th:lang="${#locale.language}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css?v=20261106-feedback1"><script src="/js/app.js?v=20261105-audit-filters"></script><title th:text="#{audit.title}">Audit log</title></head>
+<body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main>
+<header class="fb-page-heading"><div><p class="eyebrow" th:text="#{audit.title}">AUDIT TRAIL</p><h1 th:text="#{audit.title}">Audit log</h1><p class="hint" th:text="#{audit.pageHint}">Find who changed a record and when.</p></div></header><form method="get" class="library-filters"><label><span th:text="#{common.search}">Search details</span><input name="keyword" th:value="${keyword}" th:placeholder="#{audit.searchPlaceholder}"></label><label><span th:text="#{audit.actor}">User</span><select name="actor"><option value="" th:text="#{audit.allActors}">All users</option><option th:each="person:${actors}" th:value="${person.username}" th:text="${person.fullName+' · '+person.username}" th:selected="${person.username==selectedActor}"></option></select></label><label><span th:text="#{audit.action}">Action</span><select name="action"><option value="" th:text="#{audit.allActions}">All actions</option><option th:each="item:${actions}" th:value="${item}" th:text="${@uiText.auditAction(item,#locale.language)}" th:selected="${item==selectedAction}"></option></select></label><label><span th:text="#{audit.subject}">Record type</span><select name="subject"><option value="" th:text="#{audit.allSubjects}">All record types</option><option th:each="item:${subjects}" th:value="${item}" th:text="${@uiText.auditSubject(item,#locale.language)}" th:selected="${item==selectedSubject}"></option></select></label><button th:text="#{common.search}">Search</button><a class="table-action" href="/audit" th:text="#{common.clear}">Clear</a></form>
+<p class="hint" th:if="${formulaOnly}" th:text="#{audit.qcScope}"></p><div class="table-scroll"><table><thead><tr><th th:text="#{common.time}">Time</th><th th:text="#{audit.actor}">Actor</th><th th:text="#{audit.action}">Action</th><th th:text="#{audit.subject}">Record type</th><th th:text="#{common.details}">Details</th></tr></thead><tbody><tr th:each="log:${logs}"><td th:text="${#temporals.format(log.createdAt,'yyyy-MM-dd HH:mm')}"></td><td th:text="${log.actor==null?#messages.msg('common.system'):log.actor.fullName+' · '+log.actor.username}"></td><td th:text="${@uiText.auditAction(log.action,#locale.language)}"></td><td th:text="${@uiText.auditSubject(log.subjectType,#locale.language)}"></td><td th:text="${log.details}"></td></tr><tr th:if="${#lists.isEmpty(logs)}"><td colspan="5" th:text="#{audit.empty}">No records match these filters.</td></tr></tbody></table></div>
+</main></section></div></body></html>

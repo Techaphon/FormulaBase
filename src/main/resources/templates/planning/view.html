@@ -1,31 +1,29 @@
 <!doctype html>
-<html th:lang="${#locale.language}">
-<head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="/css/app.css"><script src="/js/app.js?v=20261101-3"></script>
-  <title th:text="#{planning.cycleTitle}">Planning Cycle</title>
-</head>
-<body class="workspace-page"><div class="fb-shell">
-  <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
-  <section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main>
-    <p><a href="/planning" th:text="#{planning.back}">← Monthly Planning</a></p>
-    <h1 th:text="${#messages.msg('planning.title')+' '+cycle.planningMonth}">Monthly Planning</h1>
-    <p><span th:text="#{common.status}">Status</span>: <strong th:text="${#messages.msg('status.'+cycle.status)}"></strong></p>
-    <p class="ok" th:if="${message}" th:text="${@uiText.translate(message)}"></p>
-    <p class="error" th:if="${error}" th:text="${@uiText.translate(error)}"></p>
-    <form th:if="${cycle.status.name()=='DRAFT' or isCeo}" method="post" th:action="@{'/planning/'+${cycle.id}+'/plans'}">
-      <select name="formulaId" required><option value="" th:text="#{planning.selectFormula}">Select confirmed formula</option><option th:each="formula:${formulas}" th:if="${formula.status.name()=='CONFIRMED'}" th:value="${formula.id}" th:text="${formula.documentNo+' · '+formula.name+' · Rev '+formula.revision}"></option></select>
-      <select name="workerId"><option value="" th:text="#{planning.unassigned}">Unassigned</option><option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option></select>
-      <input type="date" name="plannedDate" required><input type="number" name="targetQuantity" min="1" th:placeholder="#{planning.targetUnits}" required><button th:text="#{planning.addTask}">Add task</button>
+<html lang="en" th:lang="${#locale.language}">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css?v=20261106-feedback1"><script src="/js/app.js?v=20261105-ui"></script><title th:text="#{planning.cycleTitle}">Planning Cycle</title></head>
+<body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main class="planning-detail">
+  <a class="back-link" href="/planning" th:text="#{planning.back}">← Monthly Planning</a>
+  <header class="fb-page-heading planning-detail-heading"><div><p class="eyebrow" th:text="#{planning.monthlyEyebrow}">MONTHLY PRODUCTION</p><h1 th:text="${#messages.msg('planning.title')+' '+cycle.planningMonth}">Monthly Planning</h1><p th:text="#{planning.detailIntro}">Add daily production tasks, assign a worker, then lock the schedule when it is ready.</p></div><span class="status planning-status" th:text="${#messages.msg('status.'+cycle.status)}">Draft</span></header>
+  <p class="ok" th:if="${message}" th:text="${@uiText.translate(message)}"></p><p class="error" th:if="${error}" th:text="${@uiText.translate(error)}"></p>
+  <section class="planning-add-panel" th:if="${cycle.status.name()=='DRAFT' or isCeo}"><div class="planning-section-heading"><span class="planning-step-number">1</span><div><h2 th:text="#{planning.addTaskHeading}">Add a production task</h2><p class="hint" th:text="#{planning.addTaskHint}">Set the formula, production date, target number of units and worker.</p></div></div>
+    <form class="planning-form planning-add-form" method="post" th:action="@{'/planning/'+${cycle.id}+'/plans'}">
+      <label><span th:text="#{planning.selectFormula}">Confirmed formula</span><select name="formulaId" required><option value="" th:text="#{planning.selectFormula}">Select confirmed formula</option><option th:each="formula:${formulas}" th:if="${formula.status.name()=='CONFIRMED'}" th:value="${formula.id}" th:text="${formula.documentNo+' · '+formula.name+' · Rev '+formula.revision}"></option></select></label>
+      <label><span th:text="#{common.date}">Production date</span><input type="date" name="plannedDate" required th:attr="min=${monthStart},max=${monthEnd},value=${monthStart}"></label>
+      <label><span th:text="#{planning.targetUnits}">Target units</span><input type="number" name="targetQuantity" min="1" required th:placeholder="#{planning.targetUnits}"></label>
+      <label><span th:text="#{planning.worker}">Assigned worker</span><select name="workerId"><option value="" th:text="#{planning.unassigned}">Unassigned</option><option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option></select></label>
+      <button type="submit" th:text="#{planning.addTask}">Add task</button>
     </form>
-    <form th:if="${cycle.status.name()=='DRAFT'}" method="post" th:action="@{'/planning/'+${cycle.id}+'/lock'}"><button th:text="#{planning.lock}">Lock monthly plan</button></form>
-    <div class="table-scroll"><table><thead><tr><th th:text="#{common.date}">Date</th><th th:text="#{ui.44}">Formula</th><th th:text="#{planning.worker}">Worker</th><th th:text="#{ui.55}">Target</th><th th:text="#{common.status}">Status</th><th th:text="#{common.action}">Actions</th></tr></thead><tbody>
-      <tr th:each="plan:${plans}"><td th:text="${plan.plannedDate}"></td><td th:text="${plan.formula.name+' · Rev '+plan.formula.revision}"></td><td th:text="${plan.assignedWorker==null?#messages.msg('planning.unassigned'):plan.assignedWorker.fullName}"></td><td th:text="${plan.targetQuantity}"></td><td th:text="${plan.qualityReviewedAt!=null?#messages.msg('quality.saved'):#messages.msg('status.'+plan.status)}"></td><td>
-        <a class="table-action" target="_blank" th:href="@{'/print/work-order/'+${plan.id}}" th:text="#{common.print}">Print</a>
-        <details th:if="${(cycle.status.name()=='DRAFT' or isCeo) and plan.status.name()=='PLANNED'}"><summary th:text="#{planning.change}">Change</summary><p class="hint" th:text="#{planning.rescheduleHint}"></p><form method="post" th:action="@{'/planning/plans/'+${plan.id}+'/reschedule'}"><input name="plannedDate" type="date" required><select name="workerId"><option value="" th:text="#{planning.keepWorker}">Keep worker</option><option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option></select><input name="reason" th:placeholder="#{common.reason}" required><button th:text="#{planning.reschedule}">Reschedule</button></form><form method="post" th:action="@{'/planning/plans/'+${plan.id}+'/cancel'}"><button class="danger" th:text="#{planning.cancel}">Cancel</button></form></details>
-        <details th:if="${not #lists.isEmpty(plan.rescheduleLogs)}"><summary th:text="#{planning.history}">History</summary><p th:each="log:${plan.rescheduleLogs}" th:text="${log.previousDate+' → '+log.newDate+' · '+log.reason}"></p></details>
-      </td></tr>
-      <tr th:if="${#lists.isEmpty(plans)}"><td colspan="6" th:text="#{planning.noTasks}">No production tasks yet.</td></tr>
-    </tbody></table></div>
-  </main></section>
-</div></body></html>
+  </section>
+  <section class="planning-lock-panel" th:if="${cycle.status.name()=='DRAFT'}"><div><strong th:text="#{planning.lockHeading}">Ready to publish this schedule?</strong><p class="hint" th:text="#{planning.lockHint}">Locking makes assigned tasks available to workers.</p></div><form method="post" th:action="@{'/planning/'+${cycle.id}+'/lock'}"><button type="submit" class="planning-lock-button" th:text="#{planning.lock}">Lock monthly plan</button></form></section>
+  <section class="planning-task-section"><div class="fb-panel-heading"><div><p class="eyebrow" th:text="#{planning.tasksEyebrow}">SCHEDULED WORK</p><h2 th:text="#{planning.tasksHeading}">Production tasks</h2></div><span class="status" th:text="${#lists.size(plans)}"></span></div>
+    <div class="planning-task-list"><article class="planning-task-card" th:each="plan,stat:${plans}">
+      <div class="planning-task-number" th:text="${stat.count}">1</div><div class="planning-task-body"><div class="planning-task-title"><div><p class="planning-doc-number" th:text="${plan.formula.documentNo+' · Rev '+plan.formula.revision}"></p><h3 th:text="${plan.formula.name}">Formula name</h3></div><span class="status" th:text="${cycle.status.name()=='DRAFT' ? #messages.msg('status.DRAFT') : (plan.qualityReviewedAt!=null?#messages.msg('quality.saved'):(plan.assignedWorker==null and plan.status.name()=='PLANNED' ? #messages.msg('planning.awaitingAssignment') : #messages.msg('status.'+plan.status)))}">Planned</span></div>
+        <dl class="planning-task-details"><div><dt th:text="#{common.date}">Date</dt><dd th:text="${plan.plannedDate}"></dd></div><div><dt th:text="#{planning.worker}">Worker</dt><dd th:text="${plan.assignedWorker==null?#messages.msg('planning.unassigned'):plan.assignedWorker.fullName}"></dd></div><div><dt th:text="#{ui.55}">Target</dt><dd><strong th:text="${plan.targetQuantity}"></strong> <span th:text="#{planning.units}">units</span></dd></div></dl>
+        <div class="planning-task-actions"><a class="fb-action primary" target="_blank" th:href="@{'/print/work-order/'+${plan.id}}" th:text="${cycle.status.name()=='DRAFT' ? #messages.msg('common.previewDraft') : #messages.msg('common.print')}">Preview work order</a>
+          <details class="planning-edit-details" th:if="${(cycle.status.name()=='DRAFT' or isCeo) and plan.status.name()=='PLANNED'}"><summary th:text="#{planning.edit}">Edit schedule</summary><p class="hint" th:text="#{planning.rescheduleHint}"></p><form method="post" th:action="@{'/planning/plans/'+${plan.id}+'/reschedule'}"><label><span th:text="#{planning.newDate}">New date</span><input name="plannedDate" type="date" required th:attr="min=${monthStart},max=${monthEnd}"></label><label><span th:text="#{planning.worker}">Worker</span><select name="workerId"><option value="" th:text="#{planning.keepWorker}">Keep current worker</option><option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option></select></label><label><span th:text="#{common.reason}">Reason</span><input name="reason" required maxlength="255" th:placeholder="#{common.reason}"></label><button type="submit" th:text="#{planning.reschedule}">Reschedule</button></form><form class="planning-cancel-form" method="post" th:action="@{'/planning/plans/'+${plan.id}+'/cancel'}"><button class="danger" type="submit" th:text="#{planning.cancel}">Cancel task</button></form></details>
+          <details class="planning-history-details" th:if="${not #lists.isEmpty(plan.rescheduleLogs)}"><summary th:text="#{planning.history}">Change history</summary><ul><li th:each="log:${plan.rescheduleLogs}" th:text="${log.previousDate+' → '+log.newDate+' · '+log.reason}"></li></ul></details>
+        </div>
+      </div>
+    </article><div class="planning-empty" th:if="${#lists.isEmpty(plans)}"><span class="planning-empty-icon" aria-hidden="true">＋</span><h3 th:text="#{planning.noTasksTitle}">No tasks in this month yet</h3><p th:text="#{planning.noTasksHint}">Use “Add a production task” above to start building the schedule.</p></div></div>
+  </section>
+</main></section></div></body></html>

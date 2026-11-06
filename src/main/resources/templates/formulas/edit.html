@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/app.css?v=20261106-feedback1" />
     <link rel="stylesheet" href="/css/formula-steps.css" />
     <script src="/js/app.js?v=20261031-4"></script>
     <title th:text="#{formula.editTitle}">Edit Formula</title>
@@ -13,10 +13,10 @@
       <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
       <section class="fb-content">
         <div th:replace="~{fragments/topbar :: topbar}"></div>
-        <main>
-          <h1 th:text="#{formula.editTitle}">Edit draft formula</h1>
-          <p class="hint" th:text="#{formula.existingBasisHint}"></p>
-          <form method="post" th:action="@{'/formulas/'+${formula.id}+'/edit'}">
+        <main class="formula-builder">
+          <p><a class="back-link" href="/formulas" th:text="#{formula.back}">← Formulas</a></p>
+          <header class="fb-page-heading"><div><p class="eyebrow" th:text="#{formula.editTitle}">FORMULA REVISION</p><h1 th:text="#{formula.editTitle}">Edit draft formula</h1><p class="hint" th:text="#{formula.existingBasisHint}"></p></div></header>
+          <form method="post" class="formula-edit-form" th:action="@{'/formulas/'+${formula.id}+'/edit'}">
             <label
               ><span th:text="#{formula.documentNo}">Document No.</span><input
                 name="documentNo"
@@ -94,19 +94,17 @@
             <section class="fb-panel">
               <h2 th:text="#{formula.instructions}">Production steps</h2>
               <p class="hint" th:text="#{formula.stepHelp}"></p>
+              <p class="hint" th:text="#{formula.temperatureRule}"></p>
               <div th:each="step:${formula.steps}" class="row step-row">
                 <input name="stepInstructionsThai" th:value="${step.instructionFor('th')}" th:placeholder="#{formula.instructionThai}" />
                 <input name="stepInstructionsEnglish" th:value="${step.instructionFor('en')}" th:placeholder="#{formula.instructionEnglish}" />
                 <input name="stepTargetMinutes" type="number" min="1" step="1" th:value="${step.targetSeconds == null ? null : step.targetSeconds / 60}" th:placeholder="#{formula.targetMinutes}" />
-                <select name="stepRequiresTemperature">
-                  <option value="false" th:selected="${!step.requiresTemperature}" th:text="#{formula.temperatureNotRequired}">Temperature not required</option>
-                  <option value="true" th:selected="${step.requiresTemperature}" th:text="#{formula.temperatureRequired}">Temperature required</option>
-                </select>
                 <input name="stepTemperatureMinimums" type="number" step="0.01" th:value="${step.temperatureMinC}" th:placeholder="#{formula.temperatureMin}" />
                 <input name="stepTemperatureMaximums" type="number" step="0.01" th:value="${step.temperatureMaxC}" th:placeholder="#{formula.temperatureMax}" />
               </div>
               <p class="hint" th:if="${#lists.isEmpty(formula.steps)}" th:text="#{formula.noStepsRevision}">This formula has no production steps.</p>
             </section>
+            <label th:if="${formula.previousRevision != null}"><span th:text="#{formula.changeReason}">Reason for revision</span><input name="changeReason" required maxlength="255"></label>
             <button th:text="#{formula.saveRevision}">Save revision</button>
           </form>
           <script>

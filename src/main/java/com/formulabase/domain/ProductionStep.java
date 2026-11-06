@@ -29,7 +29,10 @@ public class ProductionStep {
         this.instructionThai = instructionThai;
         this.instructionEnglish = instructionEnglish;
         this.targetSeconds = targetSeconds;
-        this.requiresTemperature = requiresTemperature;
+        // A temperature is required only when QC has supplied at least one
+        // usable limit.  This also makes pre-existing steps with a stale flag
+        // and no limits behave safely for workers.
+        this.requiresTemperature = temperatureMinC != null || temperatureMaxC != null;
         this.temperatureMinC = temperatureMinC;
         this.temperatureMaxC = temperatureMaxC;
     }
@@ -39,7 +42,9 @@ public class ProductionStep {
     public String getInstructionThai() { return instructionThai; }
     public String getInstructionEnglish() { return instructionEnglish; }
     public Integer getTargetSeconds() { return targetSeconds; }
-    public boolean isRequiresTemperature() { return requiresTemperature; }
+    public boolean isRequiresTemperature() {
+        return requiresTemperature && (temperatureMinC != null || temperatureMaxC != null);
+    }
     public BigDecimal getTemperatureMinC() { return temperatureMinC; }
     public BigDecimal getTemperatureMaxC() { return temperatureMaxC; }
 
@@ -50,11 +55,8 @@ public class ProductionStep {
     }
 
     public void validateTemperature(BigDecimal temperature) {
-        if (!requiresTemperature) return;
+        if (!isRequiresTemperature()) return;
         if (temperature == null) throw new IllegalArgumentException("Temperature is required for this step");
-        if (temperatureMinC == null && temperatureMaxC == null) {
-            throw new IllegalStateException("QC must set a temperature limit before this step can be completed");
-        }
         if (temperatureMinC != null && temperature.compareTo(temperatureMinC) < 0) {
             throw new IllegalArgumentException("Temperature must be at least " + temperatureMinC + " °C for this step");
         }

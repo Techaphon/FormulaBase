@@ -189,9 +189,12 @@ public class FormulaService {
             String thai = valueAt(instructionsThai, i);
             String english = valueAt(instructionsEnglish, i);
             Integer target = valueAt(seconds, i);
-            boolean requiresTemperature = Boolean.TRUE.equals(valueAt(temperatures, i));
             BigDecimal minimum = valueAt(temperatureMinimums, i);
             BigDecimal maximum = valueAt(temperatureMaximums, i);
+            // QC controls the requirement by entering a minimum and/or maximum.
+            // The old select value is accepted for backwards-compatible form posts,
+            // but it must not force a Worker to enter a temperature on its own.
+            boolean requiresTemperature = minimum != null || maximum != null;
             boolean blankStep = (thai == null || thai.isBlank()) && (english == null || english.isBlank())
                     && target == null && !requiresTemperature && minimum == null && maximum == null;
             if (blankStep) continue;
@@ -199,12 +202,6 @@ public class FormulaService {
                 throw new IllegalArgumentException("Enter both Thai and English production instructions for every step");
             }
             if (target != null && target <= 0) throw new IllegalArgumentException("Target time must be greater than zero");
-            if (requiresTemperature && minimum == null && maximum == null) {
-                throw new IllegalArgumentException("Set an acceptable minimum or maximum temperature for every temperature-required step");
-            }
-            if (!requiresTemperature && (minimum != null || maximum != null)) {
-                throw new IllegalArgumentException("Temperature limits require the temperature-required option");
-            }
             if (minimum != null && maximum != null && minimum.compareTo(maximum) > 0) {
                 throw new IllegalArgumentException("Minimum temperature cannot exceed maximum temperature");
             }
@@ -254,6 +251,16 @@ public class FormulaService {
         formula.recordSubmission(actor);
         formula.setStatus(FormulaStatus.PENDING_APPROVAL);
         audit.record(actor, "SUBMIT_FORMULA", "FORMULA", formula.getId(), "Submitted " + formula.getDocumentNo() + " for approval");
+    }
+
+    @Transactional
+    public void confirmOwnDraft(java.util.UUID id, String reason, User actor) {
+        requireRole(actor, UserRole.CEO);
+        Formula formula = formulaRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Formula not found"));
+        if (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(actor.getId())) throw new IllegalStateException("You do not have permission for this action");
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("CEO self-approval requires a reason");
+        submitForApproval(id, actor);
+        confirm(id, reason, actor);
     }
 
     @Transactional
@@ -360,15 +367,29 @@ public class FormulaService {
                                List<String> stepInstructionsEnglish, List<Integer> stepTargetSeconds,
                                List<Boolean> stepRequiresTemperature, List<BigDecimal> temperatureMinimums,
                                List<BigDecimal> temperatureMaximums, User actor) {
+        return updateDraftWithSteps(id, documentNo, name, materialIds, materialPhases, calculationBasis,
+                productUnitWeightGrams, percentages, quantities, stepInstructionsThai, stepInstructionsEnglish,
+                stepTargetSeconds, stepRequiresTemperature, temperatureMinimums, temperatureMaximums, actor, null);
+    }
+
+    @Transactional
+    public Formula updateDraftWithSteps(java.util.UUID id, String documentNo, String name, List<String> materialIds,
+                               List<String> materialPhases, FormulaCalculationBasis calculationBasis,
+                               BigDecimal productUnitWeightGrams, List<BigDecimal> percentages,
+                               List<BigDecimal> quantities, List<String> stepInstructionsThai,
+                               List<String> stepInstructionsEnglish, List<Integer> stepTargetSeconds,
+                               List<Boolean> stepRequiresTemperature, List<BigDecimal> temperatureMinimums,
+                               List<BigDecimal> temperatureMaximums, User actor, String changeReason) {
         requireRole(actor, UserRole.QC, UserRole.CEO);
         Formula formula = formulaRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Formula not found"));
         if (formula.getStatus() != FormulaStatus.DRAFT && formula.getStatus() != FormulaStatus.REJECTED) throw new IllegalStateException("Only draft or rejected formulas can be edited");
+        if (changeReason != null && formula.getPreviousRevision() != null && changeReason.isBlank()) throw new IllegalArgumentException("Enter a reason for the formula revision");
         if (actor.getRole() == UserRole.QC && (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(actor.getId()))) {
             throw new IllegalStateException("QC can edit only a formula they created");
         }
         if (documentNo == null || documentNo.isBlank() || name == null || name.isBlank()) throw new IllegalArgumentException("Document number and formula name are required");
         if (formulaRepository.existsByDocumentNoIgnoreCaseAndIdNot(documentNo.trim(), id)) throw new IllegalArgumentException("Document number already exists");
-        formula.setDocumentNo(documentNo.trim()); formula.setName(name.trim()); formula.setRevision(formula.getRevision() + 1);
+        formula.setDocumentNo(documentNo.trim()); formula.setName(name.trim());
         if (materialIds == null || materialIds.isEmpty()) throw new IllegalArgumentException("At least one material row is required");
         FormulaCalculationBasis basis = calculationBasis == null ? FormulaCalculationBasis.PER_PRODUCT_UNIT : calculationBasis;
         if (basis == FormulaCalculationBasis.PERCENT_W_W) {
@@ -394,7 +415,7 @@ public class FormulaService {
         formula.setCalculationBasis(basis);
         formula.setProductUnitWeightGrams(basis == FormulaCalculationBasis.PERCENT_W_W ? productUnitWeightGrams : null);
         formula.setStatus(FormulaStatus.DRAFT); formula.setRejectionReason(null);
-        audit.record(actor, "EDIT_FORMULA", "FORMULA", formula.getId(), "Updated " + formula.getDocumentNo());
+        audit.record(actor, "EDIT_FORMULA", "FORMULA", formula.getId(), "Updated " + formula.getDocumentNo() + (changeReason == null || changeReason.isBlank() ? "" : " · " + changeReason.trim()));
         return formula;
     }
 

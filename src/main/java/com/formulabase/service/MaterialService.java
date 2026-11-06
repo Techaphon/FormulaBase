@@ -45,6 +45,13 @@ public class MaterialService {
     }
 
     @Transactional
+    public void createBatch(List<String> codes, List<String> names, List<MaterialUnit> units, com.formulabase.domain.User actor) {
+        if (codes == null || names == null || units == null || codes.isEmpty() || codes.size() != names.size() || codes.size() != units.size())
+            throw new IllegalArgumentException("Code, name and unit are required");
+        for (int i = 0; i < codes.size(); i++) create(codes.get(i), names.get(i), units.get(i), actor);
+    }
+
+    @Transactional
     public void delete(java.util.UUID id, com.formulabase.domain.User actor) {
         if (formulaMaterials.countByMaterialId(id) > 0) throw new IllegalStateException("Material is used in a formula and cannot be deleted");
         Material material = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Material not found"));

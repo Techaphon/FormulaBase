@@ -44,8 +44,6 @@ public class WorkerController {
         model.addAttribute("user", user);
         model.addAttribute("plan", plan);
         model.addAttribute("materials", details.materials());
-        int batchSize = plan.getPlannedQuantity() == null ? plan.getTargetQuantity() : plan.getPlannedQuantity();
-        model.addAttribute("bomHref", "/print/bom/" + plan.getFormula().getId() + "?batchSize=" + batchSize);
         var steps = details.steps();
         model.addAttribute("steps", steps);
         // Expose only the next eligible Start action. The service also enforces

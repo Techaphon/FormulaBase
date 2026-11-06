@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/app.css?v=20261106-feedback1" />
     <script src="/js/app.js?v=20261101-1"></script>
     <title th:text="#{formula.detailTitle}">Formula detail</title>
   </head>
@@ -30,6 +30,7 @@
             class="hint"
             th:text="${formula.calculationBasis.name() == 'PERCENT_W_W' ? '% w/w · ' + #messages.msg('formula.netWeight') + ' ' + formula.productUnitWeightGrams + ' g' : #messages.msg('formula.perUnitLegacy')}"
           ></p>
+          <section class="fb-panel" th:if="${#lists.size(formulaVersions)>1}"><h2 th:text="#{formula.revisionHistory}">Formula revisions</h2><nav class="revision-links" th:attr="aria-label=#{formula.revisionHistory}"><a th:each="version:${formulaVersions}" th:href="@{'/formulas/'+${version.id}}" th:classappend="${version.id==formula.id?'active':''}" th:text="${'Rev '+version.revision+' · '+#messages.msg('status.'+version.status)}"></a></nav></section>
           <p
             class="ok"
             th:if="${message}"
@@ -54,13 +55,16 @@
             >
           </div>
           <form
-            th:if="${canManageFormula and (formula.status.name()=='DRAFT' or formula.status.name()=='REJECTED')}"
+            th:if="${canManageFormula and (formula.status.name()=='DRAFT' or formula.status.name()=='REJECTED') and !(isCeo and formula.createdBy!=null and formula.createdBy.id==currentUser.id)}"
             method="post"
             th:action="@{'/formulas/'+${formula.id}+'/submit'}"
           >
             <p class="hint" th:text="#{formula.reviewBeforeSubmit}"></p>
             <button th:text="#{formula.submit}">Submit for CEO approval</button>
           </form>
+          <form th:if="${isCeo and formula.createdBy!=null and formula.createdBy.id==currentUser.id and (formula.status.name()=='DRAFT' or formula.status.name()=='REJECTED')}" method="post" th:action="@{'/formulas/'+${formula.id}+'/confirm-own-draft'}"><label><span th:text="#{formula.reasonSelfApproval}">Reason for approval</span><input name="approvalReason" required maxlength="255"></label><button type="submit" th:text="#{formula.confirm}">Confirm</button></form>
+          <form th:if="${canManageFormula and formula.status.name()=='CONFIRMED'}" method="post" th:action="@{'/formulas/'+${formula.id}+'/revise'}"><button type="submit" th:text="#{formula.newRevision}">Create revision</button></form>
+          <form th:if="${isCeo and formula.status.name()=='PENDING_APPROVAL'}" method="post" th:action="@{'/formulas/'+${formula.id}+'/confirm'}"><label th:if="${formula.createdBy!=null and formula.createdBy.id==currentUser.id}"><span th:text="#{formula.reasonSelfApproval}">Reason</span><input name="approvalReason" required maxlength="255"></label><button type="submit" th:text="#{formula.confirm}">Confirm</button></form>
           <section class="fb-panel">
             <h2
               th:text="${formula.calculationBasis.name() == 'PERCENT_W_W' ? #messages.msg('formula.materialsPercent') : #messages.msg('formula.materialsPerProduct')}"
@@ -105,10 +109,10 @@
                 <td th:text="${step.stepNumber}"></td>
                 <td th:text="${step.instructionFor(#locale.language)}"></td>
                 <td
-                  th:text="${step.targetSeconds==null?'-':step.targetSeconds / 60 + ' ' + #messages.msg('formula.targetMinutes')}"
+                  th:text="${step.targetSeconds==null?'-':step.targetSeconds / 60 + ' ' + #messages.msg('unit.minute')}"
                 ></td>
                 <td
-                  th:text="${step.requiresTemperature ? (step.temperatureMinC != null and step.temperatureMaxC != null ? step.temperatureMinC + '–' + step.temperatureMaxC + ' °C' : step.temperatureMinC != null ? '≥ ' + step.temperatureMinC + ' °C' : '≤ ' + step.temperatureMaxC + ' °C') : #messages.msg('common.notRequired')}"
+                  th:text="${step.requiresTemperature ? (step.temperatureMinC != null and step.temperatureMaxC != null ? step.temperatureMinC + '–' + step.temperatureMaxC + ' °C' : step.temperatureMinC != null ? '≥ ' + step.temperatureMinC + ' °C' : step.temperatureMaxC != null ? '≤ ' + step.temperatureMaxC + ' °C' : #messages.msg('common.notSpecified')) : #messages.msg('common.notRequired')}"
                 ></td>
               </tr>
               <tr th:if="${#lists.isEmpty(formula.steps)}">

@@ -1,79 +1,15 @@
 <!doctype html>
-<html th:lang="${#locale.language}">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title th:text="#{quality.title}"></title>
-    <link rel="stylesheet" href="/css/app.css" />
-    <script src="/js/app.js?v=20261030-2"></script>
-  </head>
-  <body class="workspace-page">
-    <div class="fb-shell">
-      <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
-      <section class="fb-content">
-        <div th:replace="~{fragments/topbar :: topbar}"></div>
-        <main>
-          <h1 th:text="#{quality.title}"></h1>
-          <p class="hint" th:text="#{quality.hint}"></p>
-          <p class="ok" th:if="${message}" th:text="#{quality.saved}"></p>
-          <p class="error" th:if="${error}" th:text="#{quality.invalid}"></p>
-          <article class="card" th:each="plan:${plans}">
-            <h2 th:text="${plan.formula.name}"></h2>
-            <p class="hint" th:text="${plan.formula.documentNo + ' · ' + plan.plannedDate}"></p>
-            <div class="fb-actions"><a class="fb-action" th:href="@{'/print/bom/'+${plan.formula.id}+'?batchSize='+${plan.plannedQuantity}}" target="_blank" th:text="#{quality.viewBom}">View BOM</a></div>
-            <div class="metric">
-              <span th:text="#{ui.105}"></span
-              ><strong th:text="${plan.plannedQuantity}"></strong>
-            </div>
-            <div class="metric">
-              <span th:text="#{ui.108}"></span
-              ><strong th:text="${plan.actualProducedQuantity}"></strong>
-            </div>
-            <div class="metric">
-              <span th:text="#{ui.55}"></span
-              ><strong th:text="${plan.targetQuantity}"></strong>
-            </div>
-            <div class="metric">
-              <span th:text="#{output.good}"></span
-              ><strong th:text="${plan.goodQuantity}"></strong>
-            </div>
-            <div class="metric">
-              <span th:text="#{output.rejected}"></span
-              ><strong th:text="${plan.rejectedQuantity}"></strong>
-            </div>
-            <div class="metric">
-              <span th:text="#{quality.lossAllowance}">Loss allowance</span
-              ><strong th:text="${plan.lossAllowanceQuantity}"></strong>
-            </div>
-            <form
-              th:if="${plan.qualityReviewedAt == null}"
-              method="post"
-              th:action="@{'/quality/'+${plan.id}+'/review'}"
-            >
-              <label
-                ><span th:text="#{quality.note}"></span
-                ><textarea
-                  name="note"
-                  required
-                  maxlength="255"
-                ></textarea></label
-              ><button th:text="#{quality.save}"></button>
-            </form>
-            <div th:if="${plan.qualityReviewedAt != null}">
-              <p th:text="#{quality.saved}"></p>
-              <p th:text="${plan.qualityReviewNote}"></p>
-              <small
-                th:text="${plan.qualityReviewedBy + ' • ' + plan.qualityReviewedAt}"
-              ></small>
-            </div>
-          </article>
-          <p
-            class="empty"
-            th:if="${#lists.isEmpty(plans)}"
-            th:text="#{quality.empty}"
-          ></p>
-        </main>
-      </section>
-    </div>
-  </body>
-</html>
+<html lang="en" th:lang="${#locale.language}">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title th:text="#{quality.title}">QC review</title><link rel="stylesheet" href="/css/app.css?v=20261106-feedback1"><script src="/js/app.js?v=20261105-ui"></script></head>
+<body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main class="quality-workspace">
+  <header class="fb-page-heading"><div><p class="eyebrow" th:text="#{quality.queueEyebrow}">QUALITY REVIEW</p><h1 th:text="#{quality.title}">QC review</h1><p th:text="#{quality.queueIntro}">Review completed batches flagged by the system. Record your decision and note before closing each review.</p></div></header>
+  <p class="ok" th:if="${message}" th:text="#{quality.saved}"></p><p class="error" th:if="${error}" th:text="#{quality.invalid}"></p>
+  <label class="quality-search"><span th:text="#{common.search}">Search</span><input id="quality-search" type="search" th:placeholder="#{quality.searchHint}"></label><div class="quality-review-list"><article class="quality-review-card" th:each="plan:${plans}"><details><summary class="quality-summary">
+    <header class="quality-card-heading"><div><p class="planning-doc-number" th:text="${plan.formula.documentNo+' · '+plan.plannedDate}"></p><h2 th:text="${plan.formula.name}"></h2><p class="hint" th:text="${plan.assignedWorker==null ? #messages.msg('planning.unassigned') : plan.assignedWorker.fullName}"></p></div><span class="status danger" th:text="#{quality.reviewRequired}">Review required</span></header></summary>
+    <section class="quality-exception"><span class="quality-alert-icon" aria-hidden="true">!</span><div><strong th:text="#{quality.exceptionReason}">Reason for review</strong><p th:if="${plan.goodQuantity < plan.targetQuantity}" th:text="#{quality.belowTarget}"></p><p th:if="${plan.rejectedQuantity > plan.lossAllowanceQuantity}" th:text="#{quality.lossExceeded}"></p></div></section>
+    <dl class="quality-output-summary"><div><dt th:text="#{ui.55}">Customer target</dt><dd th:text="${plan.targetQuantity}"></dd></div><div><dt th:text="#{quality.plannedTotal}">Planned production</dt><dd th:text="${plan.plannedQuantity}"></dd></div><div><dt th:text="#{ui.108}">Actual produced</dt><dd th:text="${plan.actualProducedQuantity}"></dd></div><div><dt th:text="#{output.good}">Good units</dt><dd th:text="${plan.goodQuantity}"></dd></div><div><dt th:text="#{output.rejected}">Rejected units</dt><dd th:text="${plan.rejectedQuantity}"></dd></div><div><dt th:text="#{quality.lossAllowance}">Loss allowance</dt><dd th:text="${plan.lossAllowanceQuantity}"></dd></div></dl>
+    <div class="quality-card-actions"><a class="fb-action primary" th:href="@{'/print/work-order/'+${plan.id}}" target="_blank" th:text="#{worker.printWorkOrder}">Open work order</a><a class="fb-action" th:href="@{'/print/bom/'+${plan.formula.id}+'?batchSize='+${plan.plannedQuantity}}" target="_blank" th:text="#{quality.viewBom}">View BOM</a></div>
+    <form class="quality-review-form" th:if="${plan.qualityReviewedAt == null}" method="post" th:action="@{'/quality/'+${plan.id}+'/review'}"><label for="quality-note" th:attr="for=${'quality-note-'+plan.id}"><span th:text="#{quality.note}">QC decision / note</span><textarea th:id="${'quality-note-'+plan.id}" name="note" required maxlength="255" th:placeholder="#{quality.noteHint}"></textarea></label><p class="hint" th:text="#{quality.reviewHint}">This will record who reviewed the batch and when.</p><button type="submit" th:text="#{quality.save}">Save QC review</button></form>
+    <div class="quality-reviewed" th:if="${plan.qualityReviewedAt != null}"><span class="status" th:text="#{quality.saved}">Reviewed</span><p th:text="${plan.qualityReviewNote}"></p><small th:text="${plan.qualityReviewedBy + ' · ' + plan.qualityReviewedAt}"></small></div>
+  </details></article><div class="planning-empty" th:if="${#lists.isEmpty(plans)}"><span class="planning-empty-icon" aria-hidden="true">✓</span><h2 th:text="#{quality.emptyTitle}">No batches need review</h2><p th:text="#{quality.empty}">There are no production exceptions waiting for QC.</p></div></div>
+</main></section></div><script>document.getElementById('quality-search').addEventListener('input',function(){const query=this.value.trim().toLocaleLowerCase();document.querySelectorAll('.quality-review-card').forEach(card=>card.hidden=!card.textContent.toLocaleLowerCase().includes(query));});</script></body></html>

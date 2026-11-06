@@ -16,16 +16,19 @@
       <span class="toolbar-caption"
         th:text="#{print.workOrderHint}">This document reflects the saved batch plan and execution record.</span
       >
-      <button
+      <button th:if="${not draftPreview}"
         class="button button-primary"
         type="button"
         onclick="window.print()"
       >
         <span th:text="#{print.printA4}">Print A4</span>
       </button>
+      <span th:if="${draftPreview}" class="toolbar-caption" th:text="#{planning.draftPreview}">DRAFT PREVIEW</span>
     </section>
 
     <main class="document-sheet">
+      <div th:if="${draftPreview}" class="draft-watermark" th:text="#{planning.draftPreview}">DRAFT PREVIEW · NOT FOR PRODUCTION</div>
+      <div th:if="${draftPreview}" class="draft-watermark" th:text="#{planning.draftPreview}">DRAFT PREVIEW · NOT FOR PRODUCTION</div>
       <header class="document-header">
         <div class="brand-block">
           <div class="brand-mark">FB</div>

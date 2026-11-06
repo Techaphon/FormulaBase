@@ -41,15 +41,25 @@ public class PlanningController {
     @PostMapping
     public String createCycle(@RequestParam String planningMonth, HttpSession session, RedirectAttributes redirect) {
         if (!allowed(session, UserRole.PC, UserRole.CEO)) return "redirect:/login";
-        try { planningService.createCycle(planningMonth, sessionHelper.current(session)); redirect.addFlashAttribute("message", "Planning cycle created"); }
-        catch (RuntimeException ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
-        return "redirect:/planning";
+        try {
+            var existing = planningService.cycles().stream().filter(cycle -> cycle.getPlanningMonth().equals(planningMonth)).findFirst();
+            var cycle = existing.orElseGet(() -> planningService.createCycle(planningMonth, sessionHelper.current(session)));
+            redirect.addFlashAttribute("message", existing.isPresent() ? "Planning cycle already exists" : "Planning cycle created");
+            return "redirect:/planning/" + cycle.getId();
+        } catch (RuntimeException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/planning";
+        }
     }
 
     @GetMapping("/{id}")
     public String view(@PathVariable UUID id, HttpSession session, Model model) {
         if (!allowed(session, UserRole.PC, UserRole.CEO)) return "redirect:/login";
-        model.addAttribute("cycle", planningService.getCycle(id));
+        var cycle = planningService.getCycle(id);
+        model.addAttribute("cycle", cycle);
+        var month = java.time.YearMonth.parse(cycle.getPlanningMonth());
+        model.addAttribute("monthStart", month.atDay(1));
+        model.addAttribute("monthEnd", month.atEndOfMonth());
         model.addAttribute("plans", planningService.plans(id));
         model.addAttribute("formulas", formulaService.findAll());
         model.addAttribute("workers", userService.workers());
