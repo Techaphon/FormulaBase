@@ -35,9 +35,6 @@ body{font-size:15px;line-height:1.58}h1{font-size:clamp(27px,3vw,36px);letter-sp
 @media(max-width:600px){.library-filters{align-items:stretch;flex-direction:column}.library-filters label,.library-filters button,.library-filters>a{width:100%}.material-add-disclosure{width:100%}.material-add-disclosure>summary{width:100%}.material-add-disclosure form{position:static;width:100%;grid-template-columns:1fr}.material-add-disclosure form label:nth-child(2){grid-column:auto}}
 .user-management{max-width:1320px;margin:0 auto}.user-create-disclosure{margin:0 0 20px;border:1px solid var(--line);border-radius:13px;background:var(--surface)}.user-create-disclosure>summary{min-height:48px;padding:12px 16px;color:var(--deep);font-weight:700;cursor:pointer;list-style:none}.user-create-disclosure>summary::-webkit-details-marker{display:none}.user-create-disclosure>summary::before{content:"＋";display:inline-grid;place-items:center;width:24px;height:24px;margin-right:8px;border-radius:7px;background:var(--soft)}.user-create-disclosure form{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;margin:0 12px 12px}.user-create-disclosure form label{flex:1 1 180px;margin:0}.user-create-disclosure form input,.user-create-disclosure form select{width:100%;margin:0}.user-table td form{margin:0}.user-table td form button{white-space:nowrap}
 @media(max-width:600px){.user-create-disclosure form{align-items:stretch;flex-direction:column}.user-create-disclosure form label,.user-create-disclosure form button{width:100%}}
-.formula-create-form .row.is-new{grid-template-columns:minmax(190px,1.15fr) minmax(145px,.75fr) repeat(3,minmax(105px,.7fr)) minmax(110px,.75fr) minmax(110px,.75fr) auto}.formula-create-form .row:not(.is-new) select[name=materialIds]{grid-column:auto}
-@media(max-width:1000px){.formula-create-form .row.is-new,.formula-create-form .row:not(.is-new),.formula-step-section .step-row{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:600px){.formula-create-form .row.is-new,.formula-create-form .row:not(.is-new),.formula-step-section .step-row{grid-template-columns:1fr}}
 .worker-step-card{position:relative}.worker-step-card.current-step{border:2px solid var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 15%,transparent),var(--shadow)}.worker-step-card.current-step::before{content:"";position:absolute;left:-2px;top:18px;bottom:18px;width:4px;border-radius:4px;background:var(--accent)}.worker-step-card form{margin-top:12px}.worker-step-card>strong{display:block;font-size:19px;line-height:1.4}.worker-step-card>form button{min-height:50px}
 .formula-builder{max-width:1280px;margin:0 auto}.formula-builder>.fb-page-heading{margin:5px 0 14px}.formula-create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;border:0;background:transparent;box-shadow:none}.formula-create-form>label{display:flex;margin:0}.formula-create-form>label input{width:100%;margin:0}.formula-create-form>.formula-form-section{grid-column:1/-1;margin:0;padding:20px}.formula-section-title{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}.formula-section-title h2{margin:0 0 4px}.formula-section-title .hint{margin:0}.formula-guidance{max-width:none;margin:12px 0 17px;padding:12px 15px;border-radius:10px;background:var(--soft)}.formula-create-form .formula-material-section,.formula-create-form .formula-step-section{background:var(--surface)}.formula-create-form #materialRows,.formula-create-form #stepRows{display:grid;gap:10px}.formula-create-form .row{margin:0;padding:13px;border:1px solid var(--line);border-radius:11px;background:var(--soft)}.formula-create-form .new-material-fields{display:contents}.formula-create-form .row input,.formula-create-form .row select{width:100%;min-width:0;margin:0}.formula-create-form .row button{padding:7px 10px}.formula-create-form>button[type=button]{margin-top:8px}.formula-create-form .formula-save-button{grid-column:1/-1;justify-self:end;min-width:180px;min-height:48px}.formula-create-form .row.is-new{grid-template-columns:minmax(210px,1fr) minmax(150px,.7fr) repeat(3,minmax(125px,.8fr)) auto}.formula-create-form .row:not(.is-new){grid-template-columns:minmax(210px,1fr) minmax(150px,.7fr) minmax(130px,.7fr) auto auto}.formula-create-form .row:not(.is-new) .new-material-fields{display:none}.formula-create-form .row:not(.is-new) .percent-input,.formula-create-form .row:not(.is-new) .quantity-input{grid-column:auto}.formula-step-section>.hint{margin:8px 0}.formula-step-section>.row{margin-top:10px}.formula-step-section .step-row{grid-template-columns:minmax(180px,1.2fr) minmax(180px,1.2fr) minmax(130px,.8fr) minmax(110px,.7fr) minmax(110px,.7fr) auto}.formula-edit-form{max-width:1200px}.formula-edit-form>.fb-panel{margin-top:20px}
 @media(max-width:1000px){.formula-create-form .row.is-new,.formula-create-form .row:not(.is-new),.formula-step-section .step-row{grid-template-columns:repeat(3,minmax(0,1fr))}.formula-create-form .row button{grid-column:1/-1}}
@@ -62,3 +59,81 @@ button.danger{min-height:43px;padding:10px 18px;border:1px solid #d59797;line-he
 @media(max-width:600px){.planning-create-form,.planning-add-form,.planning-edit-details form,.user-create-disclosure form{align-items:stretch;flex-direction:column}.planning-create-form label,.planning-create-form button,.planning-add-form label,.planning-add-form button,.planning-edit-details form label,.planning-edit-details form button,.user-create-disclosure form label,.user-create-disclosure form button{width:100%;flex:auto}.quality-card-actions{flex-direction:column}.quality-card-actions .fb-action{width:100%}.approval-action{flex-wrap:wrap}.approval-action input{min-width:0;flex:1 1 180px}.formula-create-form .row.is-new,.formula-create-form .row:not(.is-new),.formula-step-section .step-row{grid-template-columns:1fr}.formula-step-section .step-row input{grid-column:auto}}
 .quality-search{display:flex;max-width:520px;margin:0 0 16px}.quality-search input{width:100%}.quality-summary{cursor:pointer;list-style:none}.quality-summary::-webkit-details-marker{display:none}.quality-summary::after{content:'⌄';display:block;color:var(--deep);text-align:right}.quality-review-card[hidden]{display:none}.material-add-disclosure #materials-batch-form{display:block;min-width:min(640px,80vw)}#materials-batch-rows{display:grid;gap:10px;margin-bottom:12px}.material-batch-row{display:grid;grid-template-columns:1fr 1.4fr 1fr auto;gap:8px;align-items:end}.material-batch-row label{min-width:0}.material-batch-row input,.material-batch-row select{width:100%}.material-add-disclosure #materials-batch-form>button{margin:4px}.shortcut-grid.next-actions{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:600px){.material-add-disclosure #materials-batch-form{min-width:0}.material-batch-row{grid-template-columns:1fr}.shortcut-grid.next-actions{grid-template-columns:1fr}}
 
+
+/* Unslop: shared workspace rhythm and readable controls. */
+:root{--shadow:0 2px 12px #143e3810}
+:root.fb-dark{--shadow:0 2px 12px #0002}
+body{line-height:1.6}
+h1,h2,h3{line-height:1.3;letter-spacing:0}
+h1{font-weight:700}h2{font-weight:650}
+.eyebrow,.panel-kicker,.fb-nav-label{letter-spacing:.04em}
+button,.btn,.fb-action,.table-action{min-height:44px;line-height:1.3;box-shadow:none}
+button:hover,.btn:hover,.fb-action:hover,.table-action:hover,.shortcut-card:hover{transform:none}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+input,select,textarea{border-color:var(--line);line-height:1.4}
+.fb-content{max-width:1680px;margin-right:auto}
+.fb-sidebar nav a{min-height:44px}
+.fb-page-heading{align-items:flex-start}
+.fb-page-heading h1{margin-bottom:8px}
+.fb-panel,main:not(.login-main),.card,.fb-metrics article,.shortcut-card{box-shadow:var(--shadow)}
+.shortcut-primary,.fb-dark .shortcut-primary{background:var(--surface)}
+.shortcut-card:hover,.cycle-row:hover{background:var(--soft)}
+.shortcut-card small,.hint,.muted{line-height:1.5}
+.formula-filters,.library-filters{gap:12px}
+.formula-group-list,.quality-review-list,.planning-task-list{gap:16px}
+.formula-group-card,.quality-review-card,.planning-task-card{overflow-wrap:anywhere}
+.formula-card-main,.quality-card-heading,.planning-task-title{gap:16px}
+.formula-create-form .row,.formula-edit-form .row{gap:12px}
+.formula-create-form .formula-form-section{padding:24px}
+.formula-create-form .row{padding:16px}
+.formula-create-form input,.formula-create-form select,.formula-edit-form input,.formula-edit-form select{min-height:46px}
+.planning-lock-panel,.planning-add-panel,.planning-create-panel{gap:16px}
+.planning-task-details dd,.quality-output-summary dd,.metric strong{font-variant-numeric:tabular-nums}
+.table-scroll{max-width:100%;overscroll-behavior-x:contain}
+table{line-height:1.45}th{text-transform:none;letter-spacing:0;font-size:12px}td{overflow-wrap:anywhere}
+.worker-page{padding:16px 16px max(32px,env(safe-area-inset-bottom))}
+.worker-page .wrap{max-width:720px}
+.worker-page .wrap>article.card,.worker-page main.wrap{padding:24px}
+.worker-page .worker-task-card{padding:20px;margin:16px 0}
+.worker-page .worker-task-card>strong{display:block;line-height:1.35}
+.worker-page .worker-task-card p{margin:8px 0}
+.worker-page .worker-task-card .btn{margin-top:12px}
+.worker-page .worker-filters{gap:8px;overflow-x:auto}
+.worker-page .worker-filters button{flex:1 0 auto;min-height:48px}
+.worker-page .metric{align-items:baseline;gap:16px;padding:12px 0}
+.worker-page .metric span{min-width:0}
+.worker-page .metric strong{text-align:right;white-space:nowrap}
+.worker-page .worker-materials,.worker-page .worker-steps{margin-top:32px}
+.worker-page .worker-materials h2,.worker-page .worker-steps h2{margin:0 0 8px}
+.worker-page .worker-step-card{margin:12px 0;padding:20px;background:var(--soft);border:1px solid var(--line);box-shadow:none}
+.worker-page .worker-step-card.current-step{border:2px solid var(--accent);box-shadow:none}
+.worker-page .worker-step-card.current-step::before{display:none}
+.worker-page .worker-step-card>strong{font-size:18px;line-height:1.45}
+.worker-page .worker-step-card p{margin:8px 0;line-height:1.5}
+.worker-page .worker-step-card form{padding:0;margin:16px 0 0;background:transparent;border:0}
+.worker-page .worker-start-form,.worker-page .worker-completion-form{margin:24px 0;padding:20px;border-left:4px solid var(--accent)}
+.worker-page input,.worker-page form button{min-height:52px}
+.worker-page .step-timer{font-variant-numeric:tabular-nums}
+@media(max-width:600px){
+ .fb-content{padding:16px 16px 32px}
+ .fb-topbar{gap:8px;flex-wrap:wrap}
+ .fb-page-heading{gap:12px;flex-wrap:wrap}
+ .fb-panel,main:not(.login-main),.card{padding:16px}
+ .formula-create-form .formula-form-section{padding:16px}
+ .formula-create-form .row{padding:12px}
+ .worker-page{padding:12px 12px max(24px,env(safe-area-inset-bottom))}
+ .worker-page .wrap>article.card,.worker-page main.wrap{padding:16px}
+ .worker-page .worker-step-card,.worker-page .worker-task-card{padding:16px}
+ .worker-page .worker-start-form,.worker-page .worker-completion-form{padding:16px}
+ .worker-page .metric strong{font-size:16px}
+ .worker-page .worker-task-card .btn{width:100%}
+ .material-add-disclosure #materials-batch-form{width:100%;min-width:0}
+}
+.worker-materials{border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:var(--soft)}
+.worker-materials summary{cursor:pointer;color:var(--deep);min-height:44px;display:flex;align-items:center}
+.worker-materials summary h2{display:inline;margin:0}
+.worker-materials summary::after{content:'⌄';margin-left:auto}
+.worker-completion-wait,.percentage-summary{padding:12px 16px;background:var(--soft);border-left:4px solid var(--accent);border-radius:8px}
+.percentage-summary{margin:12px 0}.percentage-summary .hint{margin:4px 0 0}
+.quality-reason-summary{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;color:var(--ink);font-size:14px}
+.quality-reason-summary span{padding:4px 8px;background:var(--soft);border-radius:6px}

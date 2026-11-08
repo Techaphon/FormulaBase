@@ -99,6 +99,7 @@ public class ProductionExecutionService {
     @Transactional(readOnly = true)
     public PlanDetails details(UUID planId) {
         var plan = getPlan(planId);
+        plan.getPlanningCycle().getStatus();
         return new PlanDetails(plan, materialRequirements(plan), orderedSteps(plan));
     }
 

@@ -25,3 +25,13 @@ body.print-document { margin:0; min-height:100vh; padding:26px; background:#edf5
 @media screen and (max-width:800px) { .blending-spec { padding:10px; }.spec-sheet { width:100%; padding:12px; overflow-x:auto; }.spec-sheet h1 { font-size:13px; }.spec-table,.spec-meta { min-width:780px; } }
 @media print { .blending-spec { background:#fff; }.spec-sheet { width:auto; min-height:0; padding:0; box-shadow:none; }.spec-table th,.spec-table td,.spec-meta th,.spec-meta td { padding:2px 3px; }.material-spec td { height:27px; }.spec-section { margin-top:5px; }.spec-signatures>div>div { height:24px; } }
 .draft-watermark{margin:0 0 12px;padding:10px;border:2px dashed #b7791f;color:#8b5b09;text-align:center;font-size:16px;font-weight:800;letter-spacing:1.5px;background:#fff8e8}
+
+/* Keep long production documents readable across printed pages. */
+.document-table thead,.spec-table thead{display:table-header-group}
+.document-table tr,.spec-table tr{break-inside:avoid}
+.document-toolbar .button:focus-visible,.scale-form input:focus-visible{outline:3px solid var(--tiffany-dark);outline-offset:3px}
+@media print{
+ .document-section,.spec-section{break-inside:auto}
+ .document-section h2,.spec-section h2{break-after:avoid}
+ .spec-signatures,.spec-footer{break-inside:avoid}
+}

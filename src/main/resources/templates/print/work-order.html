@@ -6,7 +6,7 @@
     <title th:text="${#messages.msg('print.workOrder') + ' · ' + plan.formula.documentNo}">
       Production work order
     </title>
-    <link rel="stylesheet" href="/css/print.css" />
+    <link rel="stylesheet" href="/css/print.css?v=20261107-unslop1" />
   </head>
   <body class="print-document">
     <section class="document-toolbar no-print">
@@ -27,7 +27,6 @@
     </section>
 
     <main class="document-sheet">
-      <div th:if="${draftPreview}" class="draft-watermark" th:text="#{planning.draftPreview}">DRAFT PREVIEW · NOT FOR PRODUCTION</div>
       <div th:if="${draftPreview}" class="draft-watermark" th:text="#{planning.draftPreview}">DRAFT PREVIEW · NOT FOR PRODUCTION</div>
       <header class="document-header">
         <div class="brand-block">
@@ -127,7 +126,7 @@
               <td th:text="${material.name}">Material</td>
               <td
                 class="number mono"
-                th:text="${#numbers.formatDecimal(material.perUnit, 1, 4) + ' ' + material.perUnitUnit}"
+                th:text="${#numbers.formatDecimal(material.perUnit, 1, 4) + ' ' + (material.percentage != null ? material.totalUnit : material.perUnitUnit)}"
               >
                 0 KG
               </td>
@@ -179,7 +178,7 @@
               </td>
               <td
                 class="mono"
-                th:text="${execution.step.targetSeconds == null ? #messages.msg('print.notSpecified') : execution.step.targetSeconds / 60 + ' ' + #messages.msg('formula.targetMinutes')}"
+                th:text="${execution.step.targetSeconds == null ? #messages.msg('print.notSpecified') : execution.step.targetSeconds / 60 + ' ' + #messages.msg('unit.minute')}"
               >
                 5 min
               </td>
@@ -198,7 +197,7 @@
               </td>
               <td
                 class="mono"
-                th:text="${execution.recordedTemperature == null ? (execution.step.requiresTemperature ? '____ °C' : #messages.msg('common.notRequired')) : execution.recordedTemperature + ' °C'}"
+                th:text="${execution.recordedTemperature == null ? (execution.step.requiresTemperature ? '— °C' : #messages.msg('common.notRequired')) : execution.recordedTemperature + ' °C'}"
               >
                 ____ °C
               </td>

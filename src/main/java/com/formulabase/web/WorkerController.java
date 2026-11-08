@@ -46,6 +46,7 @@ public class WorkerController {
         model.addAttribute("materials", details.materials());
         var steps = details.steps();
         model.addAttribute("steps", steps);
+        model.addAttribute("stepsComplete", steps.stream().allMatch(step -> step.getStatus() == com.formulabase.domain.ExecutionStatus.COMPLETED));
         // Expose only the next eligible Start action. The service also enforces
         // this rule, while the UI makes the sequence clear to the Worker.
         model.addAttribute("nextStartStepId", steps.stream()

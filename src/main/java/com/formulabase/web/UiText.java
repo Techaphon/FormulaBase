@@ -49,7 +49,7 @@ Map.entry("Code, name and unit are required","กรอกรหัส ชื่
 Map.entry("Material code already exists","รหัสวัตถุดิบนี้มีอยู่แล้ว"),
 Map.entry("Quantity per unit cannot be negative","ปริมาณต่อชิ้นห้ามติดลบ"),
 Map.entry("Planning month must use yyyy-MM format","เดือนต้องเป็นรูปแบบ ปี-เดือน"),
-Map.entry("Assigned user must have WORKER role","ต้องมอบหมายให้ผู้ใช้บทบาท Worker"),
+Map.entry("Assigned user must have WORKER role","ต้องมอบหมายงานให้พนักงานผลิต"),
 Map.entry("Only planned batches can be started","เริ่มได้เฉพาะงานที่ยังไม่เริ่มผลิต"),
 Map.entry("Only planned tasks can be rescheduled","เลื่อนได้เฉพาะงานที่ยังไม่เริ่มผลิต"),
 Map.entry("Only in-progress batches can be completed","บันทึกผลได้เฉพาะงานที่กำลังผลิต"),
@@ -64,7 +64,7 @@ Map.entry("QC must set a temperature limit before this step can be completed","Q
 Map.entry("QC can edit only a formula they created","QC แก้ไขได้เฉพาะสูตรที่ตนเองสร้าง"),
 Map.entry("Only active steps can be completed","บันทึกจบได้เฉพาะขั้นตอนที่กำลังทำอยู่"),
 Map.entry("Complete earlier steps first","ต้องทำขั้นตอนก่อนหน้าให้เสร็จก่อน"),
-Map.entry("Start the batch before a production step","ต้องเริ่มผลิตทั้ง Batch ก่อนทำขั้นตอน"),
+Map.entry("Start the batch before a production step","กรุณากดเริ่มผลิตงานนี้ก่อนเริ่มขั้นตอน"),
 Map.entry("Production step not found","ไม่พบขั้นตอนการผลิต"),
 Map.entry("Reschedule reason is required","กรุณาระบุเหตุผลการเลื่อนแผน"),
 Map.entry("Only planned batches can be cancelled","ยกเลิกได้เฉพาะงานที่ยังไม่เริ่มผลิต"),
@@ -152,10 +152,10 @@ Map.entry("The request could not be completed. Please return to the application 
    case "CREATE_MATERIAL" -> "เพิ่มวัตถุดิบ"; case "DELETE_MATERIAL" -> "ลบวัตถุดิบ";
    case "CREATE_PLANNING_CYCLE" -> "สร้างแผนรายเดือน"; case "CREATE_PRODUCTION_PLAN" -> "เพิ่มงานผลิต";
    case "LOCK_PLANNING_CYCLE" -> "ล็อกแผนรายเดือน"; case "RESCHEDULE_PLAN" -> "แก้ไขกำหนดการผลิต";
-   case "CANCEL_PLAN" -> "ยกเลิกงานผลิต"; case "START_BATCH" -> "เริ่มผลิต Batch";
+   case "CANCEL_PLAN" -> "ยกเลิกงานผลิต"; case "START_BATCH" -> "เริ่มงานผลิต";
    case "START_STEP" -> "เริ่มขั้นตอนผลิต"; case "COMPLETE_STEP" -> "จบขั้นตอนผลิต";
    case "COMPLETE_STEP_OVERDUE" -> "จบขั้นตอนหลังเกินเวลา"; case "ACKNOWLEDGE_OVERDUE" -> "รับทราบแจ้งเตือนเกินเวลา";
-   case "COMPLETE_BATCH" -> "บันทึกผลผลิต Batch"; case "QUALITY_REVIEW" -> "ตรวจสอบคุณภาพ Batch";
+   case "COMPLETE_BATCH" -> "บันทึกผลผลิต"; case "QUALITY_REVIEW" -> "ตรวจสอบคุณภาพงานผลิต";
    case "CREATE_USER" -> "สร้างผู้ใช้"; case "TOGGLE_USER" -> "เปลี่ยนสถานะผู้ใช้";
    case "OPEN_BOM_PRINT_PREVIEW" -> "เปิดตัวอย่างพิมพ์ BOM"; case "OPEN_WORK_ORDER_PRINT_PREVIEW" -> "เปิดตัวอย่างพิมพ์ใบสั่งผลิต";
    default -> action.replace('_', ' ').toLowerCase(java.util.Locale.ROOT);

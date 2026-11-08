@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" th:lang="${#locale.language}">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css?v=20261106-feedback1"><script src="/js/app.js?v=20261105-ui"></script><title th:text="#{planning.cycleTitle}">Planning Cycle</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css?v=20261107-unslop3"><script src="/js/app.js?v=20261105-ui"></script><title th:text="#{planning.cycleTitle}">Planning Cycle</title></head>
 <body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main class="planning-detail">
   <a class="back-link" href="/planning" th:text="#{planning.back}">← Monthly Planning</a>
   <header class="fb-page-heading planning-detail-heading"><div><p class="eyebrow" th:text="#{planning.monthlyEyebrow}">MONTHLY PRODUCTION</p><h1 th:text="${#messages.msg('planning.title')+' '+cycle.planningMonth}">Monthly Planning</h1><p th:text="#{planning.detailIntro}">Add daily production tasks, assign a worker, then lock the schedule when it is ready.</p></div><span class="status planning-status" th:text="${#messages.msg('status.'+cycle.status)}">Draft</span></header>
@@ -14,7 +14,6 @@
       <button type="submit" th:text="#{planning.addTask}">Add task</button>
     </form>
   </section>
-  <section class="planning-lock-panel" th:if="${cycle.status.name()=='DRAFT'}"><div><strong th:text="#{planning.lockHeading}">Ready to publish this schedule?</strong><p class="hint" th:text="#{planning.lockHint}">Locking makes assigned tasks available to workers.</p></div><form method="post" th:action="@{'/planning/'+${cycle.id}+'/lock'}"><button type="submit" class="planning-lock-button" th:text="#{planning.lock}">Lock monthly plan</button></form></section>
   <section class="planning-task-section"><div class="fb-panel-heading"><div><p class="eyebrow" th:text="#{planning.tasksEyebrow}">SCHEDULED WORK</p><h2 th:text="#{planning.tasksHeading}">Production tasks</h2></div><span class="status" th:text="${#lists.size(plans)}"></span></div>
     <div class="planning-task-list"><article class="planning-task-card" th:each="plan,stat:${plans}">
       <div class="planning-task-number" th:text="${stat.count}">1</div><div class="planning-task-body"><div class="planning-task-title"><div><p class="planning-doc-number" th:text="${plan.formula.documentNo+' · Rev '+plan.formula.revision}"></p><h3 th:text="${plan.formula.name}">Formula name</h3></div><span class="status" th:text="${cycle.status.name()=='DRAFT' ? #messages.msg('status.DRAFT') : (plan.qualityReviewedAt!=null?#messages.msg('quality.saved'):(plan.assignedWorker==null and plan.status.name()=='PLANNED' ? #messages.msg('planning.awaitingAssignment') : #messages.msg('status.'+plan.status)))}">Planned</span></div>
@@ -26,4 +25,6 @@
       </div>
     </article><div class="planning-empty" th:if="${#lists.isEmpty(plans)}"><span class="planning-empty-icon" aria-hidden="true">＋</span><h3 th:text="#{planning.noTasksTitle}">No tasks in this month yet</h3><p th:text="#{planning.noTasksHint}">Use “Add a production task” above to start building the schedule.</p></div></div>
   </section>
+  <section class="planning-lock-panel" th:if="${cycle.status.name()=='DRAFT'}"><div><strong th:text="#{planning.lockHeading}">Ready to publish this schedule?</strong><p class="hint" th:text="#{planning.lockHint}">Locking makes assigned tasks available to workers.</p><p class="hint" th:text="#{planning.reviewSummary(${#lists.size(plans)},${unassignedCount})}"></p></div><form method="post" th:action="@{'/planning/'+${cycle.id}+'/lock'}"><button type="submit" class="planning-lock-button" th:text="#{planning.lock}">Lock monthly plan</button></form></section>
+
 </main></section></div></body></html>

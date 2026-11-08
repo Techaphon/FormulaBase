@@ -86,6 +86,7 @@ public class PrintController {
         ProductionPlan plan = details.plan();
         assertWorkOrderAccess(plan, actor);
         model.addAttribute("plan", plan);
+        model.addAttribute("draftPreview", plan.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.DRAFT);
         model.addAttribute("materials", details.materials());
         model.addAttribute("steps", details.steps());
         model.addAttribute("generatedAt", OffsetDateTime.now());
@@ -102,7 +103,7 @@ public class PrintController {
     }
 
     private void assertWorkOrderAccess(ProductionPlan plan, User actor) {
-        if (actor.getRole() == UserRole.CEO || actor.getRole() == UserRole.PC) return;
+        if (actor.getRole() == UserRole.CEO || actor.getRole() == UserRole.PC || actor.getRole() == UserRole.QC) return;
         if (actor.getRole() == UserRole.WORKER && plan.getAssignedWorker() != null
                 && plan.getAssignedWorker().getId().equals(actor.getId())) return;
         throw new IllegalStateException("You do not have permission to print this work order");

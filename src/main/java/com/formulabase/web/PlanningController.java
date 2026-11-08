@@ -60,7 +60,9 @@ public class PlanningController {
         var month = java.time.YearMonth.parse(cycle.getPlanningMonth());
         model.addAttribute("monthStart", month.atDay(1));
         model.addAttribute("monthEnd", month.atEndOfMonth());
-        model.addAttribute("plans", planningService.plans(id));
+        var plans = planningService.plans(id);
+        model.addAttribute("plans", plans);
+        model.addAttribute("unassignedCount", plans.stream().filter(plan -> plan.getAssignedWorker() == null && plan.getStatus() == com.formulabase.domain.ProductionPlanStatus.PLANNED).count());
         model.addAttribute("formulas", formulaService.findAll());
         model.addAttribute("workers", userService.workers());
         return "planning/view";
