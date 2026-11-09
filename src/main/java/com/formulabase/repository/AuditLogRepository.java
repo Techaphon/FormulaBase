@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
     List<AuditLog> findTop200ByOrderByCreatedAtDesc();
+    List<AuditLog> findByActionAndSubjectIdInOrderByCreatedAtAsc(String action, java.util.Collection<UUID> ids);
     @Query("""
             select a from AuditLog a left join a.actor actor
             where lower(a.action) like lower(concat('%', :keyword, '%'))

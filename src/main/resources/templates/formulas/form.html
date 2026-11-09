@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css?v=20261107-unslop3" />
+    <link rel="stylesheet" href="/css/app.css?v=20261109-ui-readability" />
     <link rel="stylesheet" href="/css/formula-steps.css" />
     <script src="/js/app.js?v=20261101-1"></script>
     <script defer src="/js/formula-summary.js?v=20261108"></script>
@@ -16,11 +16,12 @@
         <div th:replace="~{fragments/topbar :: topbar}"></div>
         <main class="formula-builder">
           <p><a class="back-link" href="/formulas" th:text="#{formula.back}">← Formulas</a></p>
-          <header class="fb-page-heading"><div><p class="eyebrow" th:text="#{formula.createTitle}">NEW PRODUCT FORMULA</p><h1 th:text="#{formula.createTitle}">Create Formula</h1><p class="hint" th:text="#{formula.builderIntro}">Set product details, add materials and then enter production steps.</p></div></header>
+          <header class="fb-page-heading"><div><h1 th:text="#{formula.createTitle}">Create Formula</h1><p class="hint" th:text="#{formula.builderIntro}">Set product details, add materials and then enter production steps.</p></div></header>
 
           <p
             class="error"
             th:if="${error}"
+            id="formula-create-error"
             th:text="${@uiText.translate(error)}"
           ></p>
           <form method="post" action="/formulas" id="formulaForm" class="formula-create-form">
@@ -49,21 +50,21 @@
               /></label>
               <p class="hint" id="percentHelp" th:text="#{formula.percentHelp}"></p>
               <p class="hint" id="legacyHelp" hidden th:text="#{formula.legacyHelp}"></p>
-            <p id="percentExample" class="hint formula-example" th:text="#{formula.calculationExample}"></p>
+            <details id="percentExample" class="formula-example"><summary th:text="#{formula.showCalculationExample}">Calculation example</summary><p class="hint" th:text="#{formula.calculationExample}"></p></details>
             </section>
             <section class="formula-form-section formula-material-section"><div class="formula-section-title"><span class="planning-step-number">2</span><div><h2 id="materialsTitle" th:text="#{formula.materialsPercent}" th:attr="data-percent-label=#{formula.materialsPercent},data-unit-label=#{formula.materialsPerUnit}">Materials (% w/w)</h2><p class="hint" th:text="#{formula.materialsHelp}">Choose a saved material or add a new material; select its production phase and amount.</p></div></div>
             <div id="percentage-summary" class="percentage-summary" aria-live="polite"><strong th:text="#{formula.totalEntered}">Approximate percentage total</strong>: <output id="percentage-total">0</output>%<p class="hint" th:text="#{formula.totalEnteredHint}"></p></div>
 <div id="materialRows">
               <div class="row material-row is-new">
-                <select name="materialIds" onchange="syncMaterialRow(this)" th:aria-label="#{formula.selectMaterial}">
+                <label class="formula-field"><span th:text="#{formula.selectMaterial}">materialIds</span><select name="materialIds" onchange="syncMaterialRow(this)" th:aria-label="#{formula.selectMaterial}">
                   <option value="" th:text="#{formula.createNewMaterial}">-- New material --</option>
                   <option
                     th:each="material:${materials}"
                     th:value="${material.id}"
                     th:text="${material.code+' · '+material.name+' ('+material.stockUnit+')'}"
                   ></option>
-                </select>
-                <select
+                </select></label>
+                <label class="formula-field"><span th:text="#{formula.phase}">materialPhases</span><select
                   name="materialPhases"
                   required
                   th:aria-label="#{formula.phase}"
@@ -73,21 +74,21 @@
                     th:value="${phase}"
                     th:text="${phase+' · '+phase.descriptionFor(#locale.language)}"
                   ></option>
-                </select>
+                </select></label>
                 <div class="new-material-fields">
-                  <input name="newMaterialCodes" th:placeholder="#{formula.newMaterialCode}" /><input
+                  <label class="formula-field"><span th:text="#{formula.newMaterialCode}">newMaterialCodes</span><input name="newMaterialCodes" th:placeholder="#{formula.newMaterialCode}" /></label><label class="formula-field"><span th:text="#{formula.newMaterialName}">newMaterialNames</span><input
                     name="newMaterialNames"
                     th:placeholder="#{formula.newMaterialName}"
-                  /><select name="newMaterialUnits">
+                  /></label><label class="formula-field"><span th:text="#{common.unit}">newMaterialUnits</span><select name="newMaterialUnits">
                     <option value="" th:text="#{common.unit}">Unit</option>
                     <option
                       th:each="unit:${units}"
                       th:value="${unit}"
                       th:text="${unit}"
                     ></option>
-                  </select>
+                  </select></label>
                 </div>
-                <input
+                <label class="formula-field"><span th:text="#{formula.percentageLabel}">percentages</span><input
                   class="percent-input"
                   name="percentages"
                   type="number"
@@ -96,7 +97,7 @@
                   max="100"
                   placeholder="% w/w"
                   th:aria-label="#{formula.percentageLabel}"
-                /><input
+                /></label><label class="formula-field"><span th:text="#{formula.quantityLabel}">quantitiesPerUnit</span><input
                   class="quantity-input"
                   name="quantitiesPerUnit"
                   type="number"
@@ -104,7 +105,7 @@
                   min="0"
                   th:placeholder="#{ui.71}"
                   th:aria-label="#{formula.quantityLabel}"
-                /><button
+                /></label><button
                   type="button"
                   onclick="removeRow(this, 'material-row')"
                 >
@@ -112,39 +113,38 @@
                 </button>
               </div>
             </div>
-            <button type="button" onclick="addMaterial()">
+            <button class="formula-secondary" type="button" onclick="addMaterial()">
               <span th:text="#{formula.addMaterial}">+ Add material</span>
             </button>
             </section>
             <section class="formula-form-section formula-step-section"><div class="formula-section-title"><span class="planning-step-number">3</span><div><h2 th:text="#{formula.instructionsOptional}">Production steps (optional)</h2><p class="hint" th:text="#{formula.stepsIntro}">Add each step in the order the worker should perform it.</p></div></div>
-            <p class="hint" th:text="#{formula.stepHelp}"></p>
             <p class="hint" th:text="#{formula.temperatureRule}"></p>
+            <details class="formula-example"><summary th:text="#{formula.showTemperatureExample}">Temperature example</summary><p class="hint" th:text="#{formula.stepHelp}"></p></details>
             <div id="stepRows">
               <div class="row step-row">
-                <input
+                <label class="formula-field"><span th:text="#{formula.instructionThai}">stepInstructionsThai</span><input
                   name="stepInstructionsThai"
                   th:placeholder="#{formula.instructionThai}"
                   th:aria-label="#{formula.instructionThai}"
-                /><input
+                /></label><label class="formula-field"><span th:text="#{formula.instructionEnglish}">stepInstructionsEnglish</span><input
                   name="stepInstructionsEnglish"
                   th:placeholder="#{formula.instructionEnglish}"
                   th:aria-label="#{formula.instructionEnglish}"
-                /><input
+                /></label><label class="formula-field"><span th:text="#{formula.targetMinutes}">stepTargetMinutes</span><input
                   name="stepTargetMinutes"
                   type="number"
                   min="1"
                   step="1"
                   th:placeholder="#{formula.targetMinutes}"
                   th:aria-label="#{formula.targetMinutes}"
-                ><input name="stepTemperatureMinimums" type="number" step="0.01" th:placeholder="#{formula.temperatureMin}" th:aria-label="#{formula.temperatureMin}"
-                /><input name="stepTemperatureMaximums" type="number" step="0.01" th:placeholder="#{formula.temperatureMax}" th:aria-label="#{formula.temperatureMax}"
-                ><button type="button" onclick="removeRow(this, 'step-row')">
+                ></label><label class="formula-field"><span th:text="#{formula.temperatureMin}">stepTemperatureMinimums</span><input name="stepTemperatureMinimums" type="number" step="0.01" th:placeholder="#{formula.temperatureMin}" th:aria-label="#{formula.temperatureMin}"
+                /></label><label class="formula-field"><span th:text="#{formula.temperatureMax}">stepTemperatureMaximums</span><input name="stepTemperatureMaximums" type="number" step="0.01" th:placeholder="#{formula.temperatureMax}" th:aria-label="#{formula.temperatureMax}"
+                ></label><button type="button" onclick="removeRow(this, 'step-row')">
                   <span th:text="#{formula.remove}">Remove</span>
                 </button>
               </div>
             </div>
-            <button type="button" onclick="addStep()" th:text="#{formula.addStep}">+ Add step</button
-            ><button type="submit" class="formula-save-button" th:text="#{formula.save}">Save Formula</button>
+            <div class="formula-builder-actions"><button class="formula-secondary" type="button" onclick="addStep()" th:text="#{formula.addStep}">+ Add step</button><button type="submit" class="formula-save-button" th:text="#{formula.save}">Save Formula</button></div>
             </section>
           </form>
         </main>
@@ -169,6 +169,7 @@
               !percent;
             document.getElementById("productUnitWeightGrams").required =
               percent;
+            document.getElementById("productUnitWeightGrams").closest("label").hidden = !percent;
             document.getElementById("percentHelp").hidden = !percent;
             document.getElementById("legacyHelp").hidden = percent;
             const title = document.getElementById("materialsTitle");
@@ -176,10 +177,12 @@
             document.querySelectorAll(".percent-input").forEach((input) => {
               input.disabled = !percent;
               input.required = percent;
+              input.closest(".formula-field").hidden = !percent;
             });
             document.querySelectorAll(".quantity-input").forEach((input) => {
               input.disabled = percent;
               input.required = !percent;
+              input.closest(".formula-field").hidden = percent;
             });
           }
           function addMaterial() {
@@ -208,6 +211,42 @@
             document.getElementById("stepRows").appendChild(row);
           }
           syncBasis();
+          // Preserve entries within this browser tab when the server rejects a submission.
+          // The server remains responsible for validation and saving the formula.
+          (() => {
+            const form = document.getElementById('formulaForm');
+            const key = 'formula-base-create-draft';
+            try {
+              const saved = sessionStorage.getItem(key);
+              if (document.getElementById('formula-create-error') && saved) {
+                const draft = JSON.parse(saved);
+                while (document.querySelectorAll('.material-row').length < draft.materialCount) addMaterial();
+                while (document.querySelectorAll('.step-row').length < draft.stepCount) addStep();
+                for (const [name, values] of Object.entries(draft.fields)) {
+                  const fields = [...form.elements].filter(element => element.name === name);
+                  fields.forEach((element, index) => { if (values[index] !== undefined) element.value = values[index]; });
+                }
+                document.querySelectorAll('[name="materialIds"]').forEach(syncMaterialRow);
+                syncBasis();
+                form.dispatchEvent(new Event('input', { bubbles: true }));
+              } else if (!document.getElementById('formula-create-error')) {
+                sessionStorage.removeItem(key);
+              }
+            } catch (_) { /* Storage is optional; the form still submits normally. */ }
+            form.addEventListener('submit', event => {
+              if (event.defaultPrevented) return;
+              try {
+                const fields = {};
+                for (const element of form.elements) {
+                  if (!element.name || element.name === '_csrf' || element.type === 'submit' || element.type === 'button') continue;
+                  (fields[element.name] ||= []).push(element.value);
+                }
+                sessionStorage.setItem(key, JSON.stringify({ fields,
+                  materialCount: document.querySelectorAll('.material-row').length,
+                  stepCount: document.querySelectorAll('.step-row').length }));
+              } catch (_) { /* Storage may be disabled by the browser. */ }
+            });
+          })();
         </script>
       </section>
     </div>

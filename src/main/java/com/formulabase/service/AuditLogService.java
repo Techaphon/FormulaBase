@@ -19,4 +19,9 @@ public class AuditLogService {
         return keyword == null || keyword.isBlank() ? repository.findTop200ByOrderByCreatedAtDesc()
                 : repository.searchByKeyword(keyword.trim());
     }
+    @Transactional(readOnly = true) public java.util.Map<UUID, List<AuditLog>> transfersFor(java.util.Collection<UUID> ids) {
+        if (ids.isEmpty()) return java.util.Map.of();
+        return repository.findByActionAndSubjectIdInOrderByCreatedAtAsc("TRANSFER_WORK", ids).stream()
+                .collect(java.util.stream.Collectors.groupingBy(AuditLog::getSubjectId));
+    }
 }

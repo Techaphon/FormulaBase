@@ -26,4 +26,5 @@ public interface ProductionPlanRepository extends JpaRepository<ProductionPlan, 
             """)
     List<Object[]> countGroupedByStatusWithDueDate(@Param("today") LocalDate today);
     boolean existsByFormulaIdAndAssignedWorkerId(UUID formulaId, UUID workerId);
+    List<ProductionPlan> findByAssignedWorkerIdAndStatusInOrderByPlannedDateAsc(UUID workerId, List<ProductionPlanStatus> statuses);
 }

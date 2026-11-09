@@ -30,8 +30,9 @@ public class WorkerController {
         var user = sessionHelper.current(session);
         if (user == null || (user.getRole() != UserRole.WORKER && user.getRole() != UserRole.CEO)) return "redirect:/login";
         model.addAttribute("user", user);
-        model.addAttribute("today", LocalDate.now());
-        model.addAttribute("tasks", executionService.tasksForWorker(user, LocalDate.now()));
+        LocalDate today = com.formulabase.config.BusinessTime.today();
+        model.addAttribute("today", today);
+        model.addAttribute("tasks", executionService.tasksForWorker(user, today));
         return "worker/tasks";
     }
     @GetMapping("/plans/{id}")

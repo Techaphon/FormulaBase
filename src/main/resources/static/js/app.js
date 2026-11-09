@@ -51,6 +51,14 @@
   document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("complete-batch");
     if (!form) return;
+    const actualInput = form.elements.actualProduced;
+    const rejectedInput = form.elements.rejected;
+    const validateQuantities = () => {
+      const invalid = actualInput.value !== "" && rejectedInput.value !== "" && Number(rejectedInput.value) > Number(actualInput.value);
+      rejectedInput.setCustomValidity(invalid ? form.dataset.invalidRejected : "");
+    };
+    actualInput.addEventListener("input", validateQuantities);
+    rejectedInput.addEventListener("input", validateQuantities);
     form.addEventListener("submit", function (event) {
       const actual = Number(form.elements.actualProduced.value);
       const rejected = Number(form.elements.rejected.value);
@@ -74,6 +82,12 @@
     });
   });
 
+  document.addEventListener("submit", function (event) {
+    if (event.defaultPrevented) return;
+    const message = event.target.dataset.confirm;
+    if (message && !window.confirm(message)) event.preventDefault();
+  });
+
   document.addEventListener("DOMContentLoaded", function () {
     const timers = [...document.querySelectorAll(".step-timer[data-started-at][data-target-seconds]")];
     if (!timers.length) return;
@@ -87,7 +101,15 @@
       if (Number.isNaN(started) || !Number.isFinite(target)) return;
       const elapsed = (Date.now() - started) / 1000;
       const overdue = elapsed > target;
-      timer.querySelector("strong").textContent = overdue ? "+" + asClock(elapsed - target) : asClock(elapsed) + " / " + asClock(target);
+      const duration = Math.max(0, Math.floor(overdue ? elapsed - target : elapsed));
+      const parts = [];
+      const day = Math.floor(duration / 86400), hour = Math.floor(duration % 86400 / 3600);
+      const minute = Math.floor(duration % 3600 / 60), second = duration % 60;
+      if (day) parts.push(day + " " + timer.dataset.day);
+      if (hour) parts.push(hour + " " + timer.dataset.hour);
+      if (minute || day || hour) parts.push(minute + " " + timer.dataset.minute);
+      if (!day && !hour) parts.push(second + " " + timer.dataset.second);
+      timer.querySelector("strong").textContent = (overdue ? timer.dataset.labelOverdue : timer.dataset.labelElapsed) + " " + parts.join(" ");
       timer.classList.toggle("error", overdue);
     });
     refresh();

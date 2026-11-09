@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" th:lang="${#locale.language}">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css?v=20261107-unslop3"><script src="/js/app.js?v=20261105-ui"></script><title th:text="#{ui.21}">Monthly Planning</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css?v=20261109-ui-readability"><script src="/js/app.js?v=20261105-ui"></script><title th:text="#{ui.21}">Monthly Planning</title></head>
 <body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main class="planning-library">
   <header class="fb-page-heading"><div><p class="eyebrow" th:text="#{planning.monthlyEyebrow}">MONTHLY PRODUCTION</p><h1 th:text="#{ui.21}">Monthly Planning</h1><p th:text="#{planning.monthlyIntro}">Prepare one production schedule for the month, then lock it when assignments are ready.</p></div></header>
   <p class="ok" th:if="${message}" th:text="${@uiText.translate(message)}"></p><p class="error" th:if="${error}" th:text="${@uiText.translate(error)}"></p>

@@ -45,7 +45,7 @@ public class WorkflowService {
                 plans.getOrDefault(ProductionPlanStatus.PLANNED, new Count(0, 0)).total(),
                 plans.getOrDefault(ProductionPlanStatus.IN_PROGRESS, new Count(0, 0)).total(),
                 plans.getOrDefault(ProductionPlanStatus.COMPLETED, new Count(0, 0)).total(),
-                plans.getOrDefault(ProductionPlanStatus.LOSS_EXCEPTION, new Count(0, 0)).total(),
+                planRepository.countByStatusAndQualityReviewedAtIsNull(ProductionPlanStatus.LOSS_EXCEPTION),
                 plans.entrySet().stream().filter(entry -> entry.getKey() == ProductionPlanStatus.PLANNED
                                 || entry.getKey() == ProductionPlanStatus.IN_PROGRESS
                                 || entry.getKey() == ProductionPlanStatus.LOSS_EXCEPTION)
@@ -83,7 +83,9 @@ public class WorkflowService {
     public List<ProductionPlan> todayTasks(LocalDate today) {
         return planRepository.findByPlannedDateAndStatusInOrderByPlannedDateAsc(today,
                 List.of(ProductionPlanStatus.PLANNED, ProductionPlanStatus.IN_PROGRESS,
-                        ProductionPlanStatus.LOSS_EXCEPTION));
+                        ProductionPlanStatus.LOSS_EXCEPTION)).stream()
+                .filter(plan -> plan.getStatus() != ProductionPlanStatus.LOSS_EXCEPTION || plan.getQualityReviewedAt() == null)
+                .toList();
     }
 
     public record WorkflowSnapshot(long draftFormulas, long pendingFormulaApprovals,

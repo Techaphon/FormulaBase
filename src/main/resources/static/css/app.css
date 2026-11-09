@@ -137,3 +137,76 @@ table{line-height:1.45}th{text-transform:none;letter-spacing:0;font-size:12px}td
 .percentage-summary{margin:12px 0}.percentage-summary .hint{margin:4px 0 0}
 .quality-reason-summary{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;color:var(--ink);font-size:14px}
 .quality-reason-summary span{padding:4px 8px;background:var(--soft);border-radius:6px}
+
+/* Logout is part of the workspace navigation; Worker uses the compact top bar. */
+.workspace-page .topbar-logout{display:none}
+.fb-sidebar-footer .sidebar-logout{margin:0;padding:0;border:0;background:transparent;box-shadow:none;line-height:normal}
+.fb-sidebar-footer .sidebar-logout button{display:flex;justify-content:flex-start;gap:12px;width:100%;min-height:44px;padding:10px 13px;background:transparent;color:#e2f5f0;border:1px solid transparent;box-shadow:none;font-size:14px;text-align:left}
+.fb-sidebar-footer .sidebar-logout button:hover{background:#23514d;color:#fff;transform:none}
+.fb-sidebar-footer .sidebar-logout button span:first-child{display:inline-grid;place-items:center;width:24px;font-size:18px}
+@media(max-width:800px){.fb-sidebar-footer{display:block;margin-top:12px;padding:12px 0 0}.fb-sidebar-footer .sidebar-logout button{width:auto}}
+.fb-topbar-title{min-width:0}.fb-topbar-title>span:last-child{min-width:0}.fb-topbar-title strong,.fb-topbar-title small{overflow-wrap:anywhere}
+.user-table td form{vertical-align:middle}.user-table .user-delete{background:transparent;color:#a32929;border:1px solid #c88686;box-shadow:none}.fb-dark .user-table .user-delete{color:#ffd1d1;border-color:#b57575}.user-table .user-delete:hover{background:#ffe9e7}.fb-dark .user-table .user-delete:hover{background:#593434}
+.transfer-task{padding:16px;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.transfer-task p{line-height:1.5}.transfer-task label{display:flex;max-width:480px}.transfer-task select{width:100%;margin:0}
+a.user-delete-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin:2px;padding:8px 12px;border:1px solid #c88686;border-radius:9px;color:#a32929;font-size:12px;font-weight:700}.fb-dark a.user-delete-link{color:#ffd1d1;border-color:#b57575}a.user-delete-link:hover{background:#ffe9e7;text-decoration:none}.fb-dark a.user-delete-link:hover{background:#593434}
+
+/* Formula Base: clear labels and a quieter hierarchy. */
+.formula-builder .formula-form-section{border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;background:transparent;padding:24px 0}
+.formula-builder .formula-section-title{margin-bottom:16px}
+.formula-builder .planning-step-number{width:32px;height:32px;background:var(--soft);color:var(--deep);font-size:15px}
+.formula-create-form .row.is-new,.formula-create-form .row:not(.is-new),.formula-step-section .step-row,.formula-edit-form .row{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:12px}
+.formula-builder .formula-field{display:flex;flex-direction:column;width:100%;min-width:0;margin:0;gap:6px;font-size:14px;line-height:1.4;font-weight:600}
+.formula-builder .formula-field[hidden]{display:none!important}
+.formula-builder .formula-field input,.formula-builder .formula-field select{width:100%;margin:0}
+.formula-builder .row button{width:auto;min-width:80px;justify-self:start}
+.formula-builder .formula-secondary{background:var(--surface);color:var(--deep);border:1px solid var(--line);box-shadow:none}
+.formula-builder .formula-secondary:hover{background:var(--soft)}
+.formula-builder .formula-save-button{margin-left:12px}
+.formula-builder .percentage-summary{margin:16px 0;background:var(--soft);box-shadow:none}
+.fb-sidebar nav a{gap:0}.fb-nav-label{font-size:12px;letter-spacing:0;font-weight:600}
+.eyebrow,.panel-kicker{font-size:13px;letter-spacing:0}
+.fb-topbar-title small{font-size:13px;line-height:1.4}
+.shortcut-grid.next-actions{gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.shortcut-grid.next-actions .shortcut-card{border:0;border-radius:0;box-shadow:none;padding:16px 20px}
+.shortcut-grid.next-actions .shortcut-card:nth-child(odd){border-right:1px solid var(--line)}
+.shortcut-grid.next-actions .shortcut-card:nth-child(-n+2){border-bottom:1px solid var(--line)}
+.shortcut-grid.next-actions .shortcut-card.needs-attention{box-shadow:inset 4px 0 var(--accent)}
+.shortcut-grid.next-actions .shortcut-card.needs-attention small{color:var(--deep);font-weight:700}
+@media(max-width:800px){.formula-create-form .row.is-new,.formula-create-form .row:not(.is-new),.formula-step-section .step-row,.formula-edit-form .row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.formula-builder .formula-form-section{padding:20px 0}.formula-create-form .row.is-new,.formula-create-form .row:not(.is-new),.formula-step-section .step-row,.formula-edit-form .row{grid-template-columns:1fr}.formula-builder .formula-save-button{margin:12px 0 0;width:100%}.formula-builder .formula-secondary{width:100%}.shortcut-grid.next-actions .shortcut-card:nth-child(odd){border-right:0}.shortcut-grid.next-actions .shortcut-card:not(:last-child){border-bottom:1px solid var(--line)}}
+@media(max-width:520px){.worker-page .fb-topbar-title small{display:block}.worker-page .fb-topbar-title{align-items:flex-start}.worker-page .fb-topbar-actions{flex-wrap:wrap}.worker-page .fb-topbar form button{font-size:14px}.worker-page .worker-filters button{font-size:14px}}
+.formula-builder label[hidden]{display:none!important}
+.shortcut-grid.next-actions .shortcut-card>span:first-child{display:grid;min-width:0}
+.formula-edit-form>section.fb-panel{border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;background:transparent;padding:24px 0}
+
+/* Keep both formula decisions together after the details being reviewed. */
+.formula-decision h2{margin:0 0 6px}.formula-decision>.hint{margin:0 0 16px}
+.formula-decision-actions{display:flex;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.formula-decision-actions form{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;margin:0;padding:0;border:0;background:transparent;box-shadow:none}
+.formula-decision-actions label{display:flex;flex-direction:column;gap:6px;margin:0}
+.formula-decision-actions input{min-width:220px;margin:0}
+.formula-decision-actions button{min-height:44px;margin:0}
+.formula-decision-actions .formula-reject-button{background:transparent;color:var(--ink);border:1px solid var(--line)}
+@media(max-width:600px){.formula-decision-actions,.formula-decision-actions form{align-items:stretch;flex-direction:column;width:100%}.formula-decision-actions label,.formula-decision-actions input,.formula-decision-actions button{width:100%;min-width:0}}
+
+/* Readable, restrained surfaces for the existing production workflow. */
+:root{--muted:#506b69}
+:root.fb-dark{--muted:#aec5c0}
+table{font-size:14px}th{font-size:13px}.dashboard-formula-code{display:block;margin-top:2px;font-size:13px;line-height:1.4}
+.worker-print-action{margin-top:24px;padding-top:16px;border-top:1px solid var(--line)}
+.worker-print-action .fb-action{width:auto;min-height:44px}
+.quality-summary::after{content:none}.quality-open-hint{display:inline-flex;align-items:center;gap:8px;margin-top:12px;color:var(--deep);font-size:14px;font-weight:700}.quality-open-hint::after{content:'↓'}.quality-review-card details[open] .quality-open-hint::after{content:'↑'}
+.user-table td form button{background:transparent;color:var(--deep);border-color:var(--line);box-shadow:none}.user-table td form button:hover{background:var(--soft)}
+.formula-example{margin:12px 0}.formula-example[hidden]{display:none}.formula-example summary{cursor:pointer;color:var(--deep);font-weight:600;min-height:44px;display:flex;align-items:center;gap:8px}.formula-example summary::before{content:'▸'}.formula-example[open] summary::before{content:'▾'}.formula-example p{margin:0 0 8px}
+.formula-builder-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px}.formula-builder .formula-save-button{margin:0}
+.planning-task-details>div{padding:0;background:transparent}.planning-task-details{gap:16px;margin:16px 0}
+@media(max-width:600px){.formula-builder-actions{align-items:stretch;flex-direction:column}.formula-builder .formula-save-button{margin:0}.worker-print-action .fb-action{width:100%}}
+
+.quality-quick-stats{display:flex;flex-wrap:wrap;gap:8px 20px;margin:12px 0;font-size:.95rem}.quality-quick-stats strong{font-variant-numeric:tabular-nums}.worker-task-card>.status{display:inline-block;margin-right:8px}.worker-task-card>strong{display:inline-block}
+
+/* Keep planning fields inside their columns on tablets and small desktop windows. */
+.planning-add-form { display:grid; grid-template-columns: minmax(240px,2fr) repeat(3,minmax(150px,1fr)) auto; align-items:end; }
+.planning-add-form label { min-width:0; width:100%; }
+.planning-add-form input, .planning-add-form select { box-sizing:border-box; min-width:0; max-width:100%; }
+@media (max-width:1300px) { .planning-add-form { grid-template-columns:repeat(2,minmax(0,1fr)); } .planning-add-form button { justify-self:start; } }
+@media (max-width:600px) { .planning-add-form { grid-template-columns:minmax(0,1fr); } .planning-add-form button { width:100%; } }

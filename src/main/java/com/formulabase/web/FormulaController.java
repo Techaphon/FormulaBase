@@ -41,7 +41,8 @@ public class FormulaController {
                 : user.getRole() == com.formulabase.domain.UserRole.QC
                     ? service.findAll().stream().filter(f -> f.getStatus() == com.formulabase.domain.FormulaStatus.PENDING_APPROVAL
                             || f.getStatus() == com.formulabase.domain.FormulaStatus.CONFIRMED
-                            || f.getStatus() == com.formulabase.domain.FormulaStatus.REJECTED).toList()
+                            || f.getStatus() == com.formulabase.domain.FormulaStatus.REJECTED
+                            || (f.getStatus() == com.formulabase.domain.FormulaStatus.DRAFT && f.getCreatedBy() != null && f.getCreatedBy().getId().equals(user.getId()))).toList()
                     : service.findAll();
         String query = keyword == null ? "" : keyword.trim().toLowerCase();
         var groups = formulas.stream().collect(java.util.stream.Collectors.groupingBy(
@@ -51,8 +52,10 @@ public class FormulaController {
                     var versions = entry.getValue().stream()
                             .sorted(java.util.Comparator.comparingInt(com.formulabase.domain.Formula::getRevision).reversed())
                             .toList();
-                    return new FormulaGroup(entry.getKey(), versions.get(0), versions);
+                    var selected = status == null ? versions.get(0) : versions.stream().filter(version -> version.getStatus() == status).findFirst().orElse(null);
+                    return selected == null ? null : new FormulaGroup(entry.getKey(), selected, versions);
                 })
+                .filter(java.util.Objects::nonNull)
                 .filter(group -> query.isEmpty() || group.getDocumentNo().toLowerCase().contains(query)
                         || group.getLatest().getName().toLowerCase().contains(query)
                         || group.getVersions().stream().anyMatch(version -> version.getDocumentNo().toLowerCase().contains(query)))
@@ -62,7 +65,7 @@ public class FormulaController {
         model.addAttribute("formulaGroups", formulaGroups);
         model.addAttribute("keyword", keyword == null ? "" : keyword); model.addAttribute("selectedStatus", status);
         model.addAttribute("statuses", user.getRole() == com.formulabase.domain.UserRole.QC
-                ? new com.formulabase.domain.FormulaStatus[]{com.formulabase.domain.FormulaStatus.PENDING_APPROVAL, com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED}
+                ? new com.formulabase.domain.FormulaStatus[]{com.formulabase.domain.FormulaStatus.DRAFT, com.formulabase.domain.FormulaStatus.PENDING_APPROVAL, com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED}
                 : com.formulabase.domain.FormulaStatus.values());
         return "formulas/list";
     }
@@ -136,6 +139,7 @@ public class FormulaController {
         var user = sessionHelper.current(session);
         if (user == null) return "redirect:/login";
         var formula = service.get(id);
+        if (user.getRole() == com.formulabase.domain.UserRole.PC && formula.getStatus() != com.formulabase.domain.FormulaStatus.CONFIRMED) return "redirect:/formulas";
         if (user.getRole() == com.formulabase.domain.UserRole.QC
                 && formula.getStatus() == com.formulabase.domain.FormulaStatus.DRAFT
                 && (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(user.getId()))) return "redirect:/formulas";
@@ -149,13 +153,14 @@ public class FormulaController {
                         || (version.getStatus() != com.formulabase.domain.FormulaStatus.SUPERSEDED
                         && (version.getStatus() != com.formulabase.domain.FormulaStatus.DRAFT
                         || (version.getCreatedBy() != null && version.getCreatedBy().getId().equals(user.getId())))))
+                .filter(version -> user.getRole() != com.formulabase.domain.UserRole.PC || version.getStatus() == com.formulabase.domain.FormulaStatus.CONFIRMED)
                 .sorted(java.util.Comparator.comparingInt(com.formulabase.domain.Formula::getRevision).reversed())
                 .toList());
         return "formulas/view";
     }
     @PostMapping("/{id}/revise") public String revise(@PathVariable UUID id, HttpSession session, RedirectAttributes redirect){try{var revision=service.createRevision(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Created revision "+revision.getDocumentNo());return "redirect:/formulas/"+revision.getId()+"/edit";}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());return "redirect:/formulas/"+id;}}
     @GetMapping("/{id}/edit") public String edit(@PathVariable UUID id,HttpSession session,Model model){var user=sessionHelper.current(session);if(user==null)return "redirect:/login";if(user.getRole()!=com.formulabase.domain.UserRole.QC&&user.getRole()!=com.formulabase.domain.UserRole.CEO)return "redirect:/formulas";var formula=service.get(id);if(user.getRole()==com.formulabase.domain.UserRole.QC&&(formula.getCreatedBy()==null||!formula.getCreatedBy().getId().equals(user.getId())))return "redirect:/formulas";model.addAttribute("formula",formula);model.addAttribute("materials",materialRepository.findAll());model.addAttribute("phases",com.formulabase.domain.FormulaPhase.values());model.addAttribute("calculationBases",FormulaCalculationBasis.values());return "formulas/edit";}
-    @PostMapping("/{id}/edit") public String update(@PathVariable UUID id,@RequestParam String documentNo,@RequestParam String name,@RequestParam List<String> materialIds,@RequestParam(required=false) List<String> materialPhases,@RequestParam(defaultValue="PER_PRODUCT_UNIT") FormulaCalculationBasis calculationBasis,@RequestParam(required=false) BigDecimal productUnitWeightGrams,@RequestParam(required=false) List<BigDecimal> percentages,@RequestParam(required=false) List<BigDecimal> quantitiesPerUnit,@RequestParam(required=false) List<String> stepInstructionsThai,@RequestParam(required=false) List<String> stepInstructionsEnglish,@RequestParam(required=false) List<Integer> stepTargetMinutes,@RequestParam(required=false) List<Boolean> stepRequiresTemperature,@RequestParam(required=false) List<BigDecimal> stepTemperatureMinimums,@RequestParam(required=false) List<BigDecimal> stepTemperatureMaximums,@RequestParam(required=false) String changeReason,HttpSession session,RedirectAttributes redirect){try{service.updateDraftWithSteps(id,documentNo,name,materialIds,materialPhases,calculationBasis,productUnitWeightGrams,percentages,quantitiesPerUnit,stepInstructionsThai,stepInstructionsEnglish,toSeconds(stepTargetMinutes),stepRequiresTemperature,stepTemperatureMinimums,stepTemperatureMaximums,sessionHelper.current(session),changeReason == null ? "" : changeReason);redirect.addFlashAttribute("message","Formula updated");}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
+    @PostMapping("/{id}/edit") public String update(@PathVariable UUID id,@RequestParam String documentNo,@RequestParam String name,@RequestParam List<String> materialIds,@RequestParam(required=false) List<String> materialPhases,@RequestParam(defaultValue="PER_PRODUCT_UNIT") FormulaCalculationBasis calculationBasis,@RequestParam(required=false) BigDecimal productUnitWeightGrams,@RequestParam(required=false) List<BigDecimal> percentages,@RequestParam(required=false) List<BigDecimal> quantitiesPerUnit,@RequestParam(required=false) List<String> stepInstructionsThai,@RequestParam(required=false) List<String> stepInstructionsEnglish,@RequestParam(required=false) List<Integer> stepTargetMinutes,@RequestParam(required=false) List<Boolean> stepRequiresTemperature,@RequestParam(required=false) List<BigDecimal> stepTemperatureMinimums,@RequestParam(required=false) List<BigDecimal> stepTemperatureMaximums,@RequestParam(required=false) String changeReason,HttpSession session,RedirectAttributes redirect){try{service.updateDraftWithSteps(id,documentNo,name,materialIds,materialPhases,calculationBasis,productUnitWeightGrams,percentages,quantitiesPerUnit,stepInstructionsThai,stepInstructionsEnglish,toSeconds(stepTargetMinutes),stepRequiresTemperature,stepTemperatureMinimums,stepTemperatureMaximums,sessionHelper.current(session),changeReason == null ? "" : changeReason);redirect.addFlashAttribute("message","Formula updated");}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());return "redirect:/formulas/"+id+"/edit";}return "redirect:/formulas/"+id;}
     @PostMapping("/{id}/reject") public String reject(@PathVariable UUID id,@RequestParam String reason,HttpSession session,RedirectAttributes redirect){try{service.reject(id,reason,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula rejected");}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas/"+id;}
     @PostMapping("/{id}/delete") public String delete(@PathVariable UUID id,HttpSession session,RedirectAttributes redirect){try{service.deleteDraft(id,sessionHelper.current(session));redirect.addFlashAttribute("message","Formula deleted");}catch(RuntimeException e){log.warn("Formula action failed: {}",e.getMessage());redirect.addFlashAttribute("error",e.getMessage());}return "redirect:/formulas";}
 

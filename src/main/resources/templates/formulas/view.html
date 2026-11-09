@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css?v=20261107-unslop3" />
-    <script src="/js/app.js?v=20261101-1"></script>
+    <link rel="stylesheet" href="/css/app.css?v=20261109-ui-readability" />
+    <script src="/js/app.js?v=20261109-heuristics"></script>
     <title th:text="#{formula.detailTitle}">Formula detail</title>
   </head>
   <body class="workspace-page">
@@ -28,7 +28,7 @@
           </p>
           <p
             class="hint"
-            th:text="${formula.calculationBasis.name() == 'PERCENT_W_W' ? '% w/w · ' + #messages.msg('formula.netWeight') + ' ' + formula.productUnitWeightGrams + ' g' : #messages.msg('formula.perUnitLegacy')}"
+            th:text="${formula.calculationBasis.name() == 'PERCENT_W_W' ? '% w/w · ' + #messages.msg('formula.netWeight') + ' ' + formula.productUnitWeightGrams.stripTrailingZeros().toPlainString() + ' g' : #messages.msg('formula.perUnitLegacy')}"
           ></p>
           <section class="fb-panel" th:if="${#lists.size(formulaVersions)>1}"><h2 th:text="#{formula.revisionHistory}">Formula revisions</h2><nav class="revision-links" th:attr="aria-label=#{formula.revisionHistory}"><a th:each="version:${formulaVersions}" th:href="@{'/formulas/'+${version.id}}" th:classappend="${version.id==formula.id?'active':''}" th:text="${'Rev '+version.revision+' · '+#messages.msg('status.'+version.status)}"></a></nav></section>
           <p
@@ -62,9 +62,7 @@
             <p class="hint" th:text="#{formula.reviewBeforeSubmit}"></p>
             <button th:text="#{formula.submit}">Submit for CEO approval</button>
           </form>
-          <form th:if="${isCeo and formula.createdBy!=null and formula.createdBy.id==currentUser.id and (formula.status.name()=='DRAFT' or formula.status.name()=='REJECTED')}" method="post" th:action="@{'/formulas/'+${formula.id}+'/confirm-own-draft'}"><label><span th:text="#{formula.reasonSelfApproval}">Reason for approval</span><input name="approvalReason" required maxlength="255"></label><button type="submit" th:text="#{formula.confirm}">Confirm</button></form>
           <form th:if="${canManageFormula and formula.status.name()=='CONFIRMED'}" method="post" th:action="@{'/formulas/'+${formula.id}+'/revise'}"><button type="submit" th:text="#{formula.newRevision}">Create revision</button></form>
-          <form th:if="${isCeo and formula.status.name()=='PENDING_APPROVAL'}" method="post" th:action="@{'/formulas/'+${formula.id}+'/confirm'}"><label th:if="${formula.createdBy!=null and formula.createdBy.id==currentUser.id}"><span th:text="#{formula.reasonSelfApproval}">Reason</span><input name="approvalReason" required maxlength="255"></label><button type="submit" th:text="#{formula.confirm}">Confirm</button></form>
           <section class="fb-panel">
             <h2
               th:text="${formula.calculationBasis.name() == 'PERCENT_W_W' ? #messages.msg('formula.materialsPercent') : #messages.msg('formula.materialsPerProduct')}"
@@ -120,18 +118,24 @@
               </tr>
             </table>
           </section>
-          <form
-            th:if="${isCeo and formula.status.name()=='PENDING_APPROVAL'}"
-            method="post"
-            th:action="@{'/formulas/'+${formula.id}+'/reject'}"
-          >
-            <label
-              ><span th:text="#{formula.rejectionReason}">Rejection reason</span>
-              <input name="reason" required maxlength="255" /></label
-            ><button th:text="#{formula.reject}">Reject formula</button>
-          </form>
+          <section class="fb-panel formula-decision" th:if="${isCeo and formula.status.name()=='PENDING_APPROVAL'}" aria-labelledby="formula-decision-heading">
+            <h2 id="formula-decision-heading" th:text="#{formula.decisionHeading}">Formula decision</h2>
+            <p class="hint" th:text="#{formula.decisionHint}">Review the formula above, then choose a decision.</p>
+            <div class="formula-decision-actions">
+              <form method="post" th:action="@{'/formulas/'+${formula.id}+'/confirm'}">
+                <label th:if="${formula.createdBy!=null and formula.createdBy.id==currentUser.id}"><span th:text="#{formula.reasonSelfApproval}">Reason for approving your own formula</span><input name="approvalReason" required maxlength="255"></label>
+                <button type="submit" th:text="#{formula.confirm}">Approve formula</button>
+              </form>
+              <form method="post" th:action="@{'/formulas/'+${formula.id}+'/reject'}">
+                <label><span th:text="#{formula.rejectionReason}">Reason for not approving</span><input name="reason" required maxlength="255" /></label>
+                <button class="formula-reject-button" type="submit" th:text="#{formula.reject}">Do not approve formula</button>
+              </form>
+            </div>
+          </section>
+          <form th:if="${isCeo and formula.createdBy!=null and formula.createdBy.id==currentUser.id and (formula.status.name()=='DRAFT' or formula.status.name()=='REJECTED')}" method="post" th:action="@{'/formulas/'+${formula.id}+'/confirm-own-draft'}"><label><span th:text="#{formula.reasonSelfApproval}">Reason for approving your own formula</span><input name="approvalReason" required maxlength="255"></label><button type="submit" th:text="#{formula.confirm}">Approve formula</button></form>
           <form
             th:if="${isCeo and (formula.status.name()=='DRAFT' or formula.status.name()=='REJECTED')}"
+            th:attr="data-confirm=#{formula.confirmDeleteDraft}"
             method="post"
             th:action="@{'/formulas/'+${formula.id}+'/delete'}"
           >

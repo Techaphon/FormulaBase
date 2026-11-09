@@ -111,6 +111,7 @@ public class ProductionPlan {
     }
 
     public UUID getId() { return id; }
+    public long getVersion() { return version; }
     public MonthlyPlanningCycle getPlanningCycle() { return planningCycle; }
     public Formula getFormula() { return formula; }
     public LocalDate getPlannedDate() { return plannedDate; }
@@ -137,6 +138,7 @@ public class ProductionPlan {
     }
 
     public void assignWorker(User worker) {
+        if (worker != null && worker.isArchived()) throw new IllegalArgumentException("Worker not found");
         if (worker != null && worker.getRole() != UserRole.WORKER) {
             throw new IllegalArgumentException("Assigned user must have WORKER role");
         }

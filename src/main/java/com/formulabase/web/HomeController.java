@@ -27,12 +27,12 @@ public class HomeController {
         if (session.getAttribute("FORMULA_BASE_USERNAME") == null) return "redirect:/login";
         var user = sessions.current(session);
         if (user == null) return "redirect:/login";
-        LocalDate today = LocalDate.now();
+        LocalDate today = com.formulabase.config.BusinessTime.today();
         model.addAttribute("today", today);
         if (user.getRole() == com.formulabase.domain.UserRole.WORKER) return "redirect:/worker/tasks";
         if (user.getRole() != com.formulabase.domain.UserRole.CEO) {
             if (user.getRole() == com.formulabase.domain.UserRole.QC) {
-                model.addAttribute("snapshot", workflowService.snapshot(LocalDate.now()));
+                model.addAttribute("snapshot", workflowService.snapshot(today));
                 model.addAttribute("pendingApprovals", workflowService.pendingApprovals());
             } else {
                 model.addAttribute("draftCycles", workflowService.draftCycles());

@@ -25,7 +25,7 @@ public class RoleAccess implements WebMvcConfigurer {
                 if (user.getRole() == UserRole.QC) allowed |= path.startsWith("/quality") || path.startsWith("/materials")
                         || path.startsWith("/audit") || (path.startsWith("/formulas") && !path.endsWith("/confirm"))
                         || (read && (path.startsWith("/print/bom/") || path.startsWith("/print/work-order/")));
-                if (user.getRole() == UserRole.PC) allowed |= path.startsWith("/planning") || path.startsWith("/history") || (read && (path.equals("/formulas") || path.startsWith("/print/")));
+                if (user.getRole() == UserRole.PC) allowed |= path.startsWith("/planning") || path.startsWith("/history") || (read && (path.equals("/formulas") || path.matches("/formulas/[0-9a-fA-F-]{36}") || path.startsWith("/print/")));
                 if (user.getRole() == UserRole.WORKER) allowed |= path.startsWith("/worker/")
                         || (read && (path.startsWith("/print/work-order/") || path.startsWith("/print/bom/")));
                 if (!allowed) {

@@ -54,10 +54,18 @@ public class PrintController {
         }
 
         Formula formula = formulas.get(id);
+        if (actor.getRole() == UserRole.PC && formula.getStatus() != com.formulabase.domain.FormulaStatus.CONFIRMED) {
+            throw new IllegalStateException("You do not have permission to print a BOM");
+        }
+        if (actor.getRole() == UserRole.QC && formula.getStatus() == com.formulabase.domain.FormulaStatus.DRAFT
+                && (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(actor.getId()))) {
+            throw new IllegalStateException("You do not have permission to print a BOM");
+        }
         boolean percentFormula = formula.getCalculationBasis() == FormulaCalculationBasis.PERCENT_W_W;
         BigDecimal batchMassGrams = percentFormula
                 ? formula.getProductUnitWeightGrams().multiply(BigDecimal.valueOf(batchSize)) : null;
-        List<BomLine> lines = formula.getMaterials().stream().map(item -> {
+        List<BomLine> lines = formula.getMaterials().stream()
+                .sorted(com.formulabase.domain.FormulaMaterialOrder.byPhaseAndCode()).map(item -> {
             if (percentFormula) {
                 BigDecimal total = batchMassGrams.multiply(item.getPercentage()).movePointLeft(2);
                 return new BomLine(item.getPhase().name(), item.getMaterial().getCode(), item.getMaterial().getName(),
@@ -72,7 +80,7 @@ public class PrintController {
         model.addAttribute("percentFormula", percentFormula);
         model.addAttribute("batchMassGrams", batchMassGrams);
         model.addAttribute("bomLines", lines);
-        model.addAttribute("generatedAt", OffsetDateTime.now());
+        model.addAttribute("generatedAt", OffsetDateTime.now(com.formulabase.config.BusinessTime.ZONE));
         model.addAttribute("printedBy", actor.getFullName());
         audit.record(actor, "OPEN_BOM_PRINT_PREVIEW", "FORMULA", formula.getId(),
                 "BOM basis " + batchSize + " product unit(s)");
@@ -89,7 +97,7 @@ public class PrintController {
         model.addAttribute("draftPreview", plan.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.DRAFT);
         model.addAttribute("materials", details.materials());
         model.addAttribute("steps", details.steps());
-        model.addAttribute("generatedAt", OffsetDateTime.now());
+        model.addAttribute("generatedAt", OffsetDateTime.now(com.formulabase.config.BusinessTime.ZONE));
         model.addAttribute("printedBy", actor.getFullName());
         audit.record(actor, "OPEN_WORK_ORDER_PRINT_PREVIEW", "PLAN", plan.getId(),
                 "Opened work order for " + plan.getPlannedDate());

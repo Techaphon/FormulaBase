@@ -4,6 +4,7 @@ import com.formulabase.domain.Formula;
 import com.formulabase.domain.MonthlyPlanningCycle;
 import com.formulabase.domain.MonthlyPlanningCycleStatus;
 import com.formulabase.domain.ProductionPlan;
+import com.formulabase.domain.ProductionPlanStatus;
 import com.formulabase.repository.FormulaRepository;
 import com.formulabase.repository.MonthlyPlanningCycleRepository;
 import com.formulabase.repository.ProductionPlanRepository;
@@ -75,7 +76,7 @@ public class PlanningService {
 
     @Transactional
     public ProductionPlan addPlan(UUID cycleId, UUID formulaId, UUID workerId, LocalDate plannedDate, int targetQuantity, User actor) {
-        MonthlyPlanningCycle cycle = getCycle(cycleId);
+        MonthlyPlanningCycle cycle = lockedCycle(cycleId);
         if (cycle.getStatus() == MonthlyPlanningCycleStatus.LOCKED && (actor == null || actor.getRole() != UserRole.CEO)) {
             throw new IllegalStateException("Locked planning cycle cannot be edited");
         }
@@ -92,8 +93,7 @@ public class PlanningService {
         if (plannedDate == null) throw new IllegalArgumentException("Planned date is required");
         ProductionPlan plan = new ProductionPlan(cycle, formula, plannedDate, targetQuantity);
         if (workerId != null) {
-            plan.assignWorker(userRepository.findById(workerId)
-                    .orElseThrow(() -> new IllegalArgumentException("Worker not found")));
+            plan.assignWorker(activeWorker(workerId));
         }
         for (var step : formula.getSteps()) plan.addStepExecution(step);
         ProductionPlan saved = planRepository.save(plan);
@@ -108,8 +108,10 @@ public class PlanningService {
 
     @Transactional
     public void lockCycle(UUID cycleId, User actor) {
-        MonthlyPlanningCycle cycle = getCycle(cycleId);
-        if (planRepository.findByPlanningCycleIdOrderByPlannedDateAsc(cycleId).isEmpty()) throw new IllegalStateException("Add at least one production task before locking the month");
+        MonthlyPlanningCycle cycle = lockedCycle(cycleId);
+        if (planRepository.findByPlanningCycleIdOrderByPlannedDateAsc(cycleId).stream()
+                .noneMatch(plan -> plan.getStatus() != ProductionPlanStatus.CANCELLED))
+            throw new IllegalStateException("Add at least one production task before locking the month");
         cycle.setStatus(MonthlyPlanningCycleStatus.LOCKED);
         if (actor != null) audit.record(actor, "LOCK_PLANNING_CYCLE", "CYCLE", cycle.getId(), "Locked " + cycle.getPlanningMonth());
     }
@@ -121,10 +123,10 @@ public class PlanningService {
         if (date == null || !date.toString().startsWith(plan.getPlanningCycle().getPlanningMonth())) throw new IllegalArgumentException("New date must be within the planning month");
         if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Reschedule reason is required");
         OffsetDateTime deadline = plan.getPlannedDate().minusDays(1).atTime(23, 59, 59).atOffset(ZoneOffset.ofHours(7));
-        if (OffsetDateTime.now().isAfter(deadline)) throw new IllegalStateException("Rescheduling closes at 23:59:59 on the day before production");
+        if (actor.getRole() != UserRole.CEO && OffsetDateTime.now().isAfter(deadline)) throw new IllegalStateException("Rescheduling closes at 23:59:59 on the day before production");
         LocalDate oldDate = plan.getPlannedDate();
         plan.reschedule(date);
-        if (workerId != null) plan.assignWorker(userRepository.findById(workerId).orElseThrow(() -> new IllegalArgumentException("Worker not found")));
+        if (workerId != null) plan.assignWorker(activeWorker(workerId));
         plan.addRescheduleLog(oldDate, date, reason.trim(), actor);
         audit.record(actor, "RESCHEDULE_PLAN", "PLAN", plan.getId(), oldDate + " → " + date + "; worker " + (plan.getAssignedWorker() == null ? "unassigned" : plan.getAssignedWorker().getUsername()) + ": " + reason.trim());
     }
@@ -136,5 +138,59 @@ public class PlanningService {
         if (plan.getPlanningCycle().getStatus() == MonthlyPlanningCycleStatus.LOCKED && actor.getRole() != UserRole.CEO) throw new IllegalStateException("Only CEO can change a locked month");
         plan.cancel();
         audit.record(actor, "CANCEL_PLAN", "PLAN", plan.getId(), "Cancelled task on " + plan.getPlannedDate());
+    }
+
+    private MonthlyPlanningCycle lockedCycle(UUID id) {
+        return cycleRepository.findLockedById(id).orElseThrow(() -> new IllegalArgumentException("Planning cycle not found"));
+    }
+
+    private void checkDeletionPermission(User actor, MonthlyPlanningCycle cycle) {
+        if (actor == null || (actor.getRole() != UserRole.CEO && actor.getRole() != UserRole.PC))
+            throw new IllegalStateException("Only CEO or PC can delete draft plans");
+        if (cycle.getStatus() != MonthlyPlanningCycleStatus.DRAFT)
+            throw new IllegalStateException("Only draft monthly plans can be deleted");
+    }
+
+    private void checkDeletable(ProductionPlan plan) {
+        if ((plan.getStatus() != ProductionPlanStatus.PLANNED && plan.getStatus() != ProductionPlanStatus.CANCELLED)
+                || plan.getStartedAt() != null || !plan.getRescheduleLogs().isEmpty())
+            throw new IllegalStateException("Cannot delete a task with production or schedule history");
+    }
+
+    @Transactional
+    public void deletePlan(UUID cycleId, UUID planId, User actor) {
+        var cycle = lockedCycle(cycleId);
+        checkDeletionPermission(actor, cycle);
+        var plan = planRepository.findById(planId).orElseThrow(() -> new IllegalArgumentException("Production plan not found"));
+        if (!plan.getPlanningCycle().getId().equals(cycleId)) throw new IllegalArgumentException("Production plan not found");
+        checkDeletable(plan);
+        audit.record(actor, "DELETE_PRODUCTION_PLAN", "PLAN", plan.getId(),
+                "Deleted draft task " + plan.getFormula().getDocumentNo() + " on " + plan.getPlannedDate());
+        planRepository.delete(plan);
+        planRepository.flush();
+    }
+
+    @Transactional
+    public void deleteCycle(UUID cycleId, User actor) {
+        var cycle = lockedCycle(cycleId);
+        checkDeletionPermission(actor, cycle);
+        var plans = planRepository.findByPlanningCycleIdOrderByPlannedDateAsc(cycleId);
+        plans.forEach(this::checkDeletable);
+        for (var plan : plans) {
+            audit.record(actor, "DELETE_PRODUCTION_PLAN", "PLAN", plan.getId(),
+                    "Deleted draft task " + plan.getFormula().getDocumentNo() + " on " + plan.getPlannedDate());
+        }
+        audit.record(actor, "DELETE_PLANNING_CYCLE", "CYCLE", cycle.getId(),
+                "Deleted draft month " + cycle.getPlanningMonth() + " (" + plans.size() + " tasks)");
+        planRepository.deleteAll(plans);
+        planRepository.flush();
+        cycleRepository.delete(cycle);
+        cycleRepository.flush();
+    }
+
+    private User activeWorker(UUID id) {
+        User worker = userRepository.findLockedById(id).orElseThrow(() -> new IllegalArgumentException("Worker not found"));
+        if (!worker.isActive() || worker.isArchived() || worker.getRole() != UserRole.WORKER) throw new IllegalArgumentException("Worker not found");
+        return worker;
     }
 }

@@ -22,5 +22,7 @@ public interface FormulaRepository extends JpaRepository<Formula, UUID> {
     @EntityGraph(attributePaths = {"materials", "materials.material"})
     @Query("select distinct f from Formula f where f.id = :id")
     java.util.Optional<Formula> findWithDetailsById(@Param("id") UUID id);
+    @Query("select f.id from Formula f where f.status in :statuses")
+    List<UUID> findIdsByStatusIn(@Param("statuses") java.util.Collection<FormulaStatus> statuses);
     long countByStatus(FormulaStatus status);
 }

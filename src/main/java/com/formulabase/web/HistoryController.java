@@ -15,10 +15,12 @@ import java.time.LocalDate;
 public class HistoryController {
     private final ProductionHistoryRepository history;
     private final SessionHelper sessions;
+    private final com.formulabase.service.AuditLogService audit;
 
-    public HistoryController(ProductionHistoryRepository history, SessionHelper sessions) {
+    public HistoryController(ProductionHistoryRepository history, SessionHelper sessions, com.formulabase.service.AuditLogService audit) {
         this.history = history;
         this.sessions = sessions;
+        this.audit = audit;
     }
 
     @GetMapping
@@ -28,22 +30,24 @@ public class HistoryController {
                        @RequestParam(required = false) LocalDate to,
                        HttpSession session, Model model) {
         if (sessions.current(session) == null) return "redirect:/login";
-        var records = history.findAllByOrderByCompletedAtDesc().stream()
+        var allRecords = history.findAllByOrderByCompletedAtDesc();
+        var records = allRecords.stream()
                 .filter(record -> keyword == null || keyword.isBlank()
                         || record.getProductionPlan().getFormula().getName().toLowerCase().contains(keyword.trim().toLowerCase())
                         || record.getProductionPlan().getFormula().getDocumentNo().toLowerCase().contains(keyword.trim().toLowerCase()))
                 .filter(record -> worker == null || worker.isBlank()
                         || (record.getProductionPlan().getAssignedWorker() != null
                         && record.getProductionPlan().getAssignedWorker().getUsername().equals(worker)))
-                .filter(record -> from == null || !record.getCompletedAt().toLocalDate().isBefore(from))
-                .filter(record -> to == null || !record.getCompletedAt().toLocalDate().isAfter(to))
+                .filter(record -> from == null || !record.getCompletedAt().atZoneSameInstant(com.formulabase.config.BusinessTime.ZONE).toLocalDate().isBefore(from))
+                .filter(record -> to == null || !record.getCompletedAt().atZoneSameInstant(com.formulabase.config.BusinessTime.ZONE).toLocalDate().isAfter(to))
                 .toList();
         model.addAttribute("records", records);
+        model.addAttribute("transferHistory", audit.transfersFor(records.stream().map(record -> record.getProductionPlan().getId()).toList()));
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("selectedWorker", worker == null ? "" : worker);
         model.addAttribute("from", from);
         model.addAttribute("to", to);
-        model.addAttribute("workers", history.findAllByOrderByCompletedAtDesc().stream()
+        model.addAttribute("workers", allRecords.stream()
                 .map(record -> record.getProductionPlan().getAssignedWorker()).filter(java.util.Objects::nonNull)
                 .distinct().toList());
         return "history/list";

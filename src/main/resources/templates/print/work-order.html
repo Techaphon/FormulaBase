@@ -28,6 +28,7 @@
 
     <main class="document-sheet">
       <div th:if="${draftPreview}" class="draft-watermark" th:text="#{planning.draftPreview}">DRAFT PREVIEW · NOT FOR PRODUCTION</div>
+      <div th:if="${plan.lossPercentage == null}" class="draft-watermark" th:text="#{print.awaitingLossWarning}">PRELIMINARY QUANTITIES · LOSS NOT SET</div>
       <header class="document-header">
         <div class="brand-block">
           <div class="brand-mark">FB</div>
@@ -87,7 +88,7 @@
         <div>
           <span th:text="#{print.plannedProduction}">Planned production</span
           ><strong
-            th:text="${(plan.plannedQuantity == null ? plan.targetQuantity : plan.plannedQuantity) + ' ' + #messages.msg('unit.piece')}"
+            th:text="${plan.plannedQuantity == null ? #messages.msg('print.notSetBeforeStart') : plan.plannedQuantity + ' ' + #messages.msg('unit.piece')}"
             >105 pieces</strong
           >
         </div>

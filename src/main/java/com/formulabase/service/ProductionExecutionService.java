@@ -23,6 +23,8 @@ public class ProductionExecutionService {
     private final ProductionHistoryRepository historyRepository;
     private final QuantityCalculationService quantityCalculationService;
     private final AuditLogService audit;
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
 
     public ProductionExecutionService(ProductionPlanRepository planRepository,
                                       ProductionHistoryRepository historyRepository,
@@ -35,7 +37,7 @@ public class ProductionExecutionService {
 
     @Transactional(readOnly = true)
     public List<ProductionPlan> tasksForWorker(User worker, LocalDate today) {
-        if (worker != null && worker.getRole() == UserRole.CEO) return planRepository.findAll();
+        if (worker != null && worker.getRole() == UserRole.CEO) return sortTasks(planRepository.findAll());
         if (worker == null || worker.getRole() != UserRole.WORKER) {
             throw new IllegalArgumentException("Only workers can view worker tasks");
         }
@@ -43,7 +45,17 @@ public class ProductionExecutionService {
                 worker.getId(), today,
                 List.of(ProductionPlanStatus.PLANNED, ProductionPlanStatus.IN_PROGRESS,
                         ProductionPlanStatus.LOSS_EXCEPTION)).stream()
-                .filter(p -> p.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED).toList();
+                .filter(p -> p.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED)
+                .sorted(taskOrder()).toList();
+    }
+
+    private java.util.Comparator<ProductionPlan> taskOrder() {
+        return Comparator.comparingInt((ProductionPlan p) -> switch (p.getStatus()) {
+            case IN_PROGRESS -> 0; case PLANNED -> 1; case LOSS_EXCEPTION -> 2; default -> 3;
+        }).thenComparing(ProductionPlan::getPlannedDate);
+    }
+    private List<ProductionPlan> sortTasks(List<ProductionPlan> tasks) {
+        return tasks.stream().sorted(taskOrder()).toList();
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +70,7 @@ public class ProductionExecutionService {
         assertAssignedWorker(plan, worker);
         if (plan.getPlanningCycle().getStatus() != com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED)
             throw new IllegalStateException("Lock the monthly plan before starting production");
-        if (plan.getPlannedDate().isAfter(LocalDate.now())) throw new IllegalStateException("This task is scheduled for a future date");
+        if (plan.getPlannedDate().isAfter(com.formulabase.config.BusinessTime.today())) throw new IllegalStateException("This task is scheduled for a future date");
         if (lossPercentage == null) throw new IllegalArgumentException("Loss percentage is required before Start");
         var result = quantityCalculationService.calculate(plan.getTargetQuantity(), lossPercentage);
         plan.start(lossPercentage, new ProductionPlan.QuantitySnapshot(
@@ -109,7 +121,8 @@ public class ProductionExecutionService {
         BigDecimal batchMassGrams = percentFormula
                 ? plan.getFormula().getProductUnitWeightGrams().multiply(BigDecimal.valueOf(units))
                 : null;
-        return plan.getFormula().getMaterials().stream().map(item -> {
+        return plan.getFormula().getMaterials().stream()
+                .sorted(com.formulabase.domain.FormulaMaterialOrder.byPhaseAndCode()).map(item -> {
             if (percentFormula) {
                 BigDecimal total = batchMassGrams.multiply(item.getPercentage()).movePointLeft(2);
                 BigDecimal perPiece = plan.getFormula().getProductUnitWeightGrams().multiply(item.getPercentage()).movePointLeft(2);
@@ -138,6 +151,7 @@ public class ProductionExecutionService {
     @Transactional
     public void startStep(UUID planId, UUID stepId, User actor) {
         ProductionPlan plan = getPlan(planId); assertAssignedWorker(plan, actor);
+        entityManager.lock(plan, jakarta.persistence.LockModeType.OPTIMISTIC_FORCE_INCREMENT);
         if (plan.getStatus() != ProductionPlanStatus.IN_PROGRESS) throw new IllegalStateException("Start the batch before a production step");
         var steps = plan.getStepExecutions();
         var current = steps.stream().filter(s -> s.getId().equals(stepId)).findFirst().orElseThrow(() -> new IllegalArgumentException("Production step not found"));
@@ -149,6 +163,7 @@ public class ProductionExecutionService {
     @Transactional
     public void completeStep(UUID planId, UUID stepId, BigDecimal temperature, User actor) {
         ProductionPlan plan = getPlan(planId); assertAssignedWorker(plan, actor);
+        entityManager.lock(plan, jakarta.persistence.LockModeType.OPTIMISTIC_FORCE_INCREMENT);
         var step = plan.getStepExecutions().stream().filter(s -> s.getId().equals(stepId)).findFirst().orElseThrow(() -> new IllegalArgumentException("Production step not found"));
         step.complete(temperature);
         audit.record(actor, step.isOverdue() ? "COMPLETE_STEP_OVERDUE" : "COMPLETE_STEP", "STEP", step.getId(), step.getStep().getInstruction());
@@ -157,6 +172,7 @@ public class ProductionExecutionService {
     @Transactional
     public void acknowledgeStepAlert(UUID planId, UUID stepId, String note, User actor) {
         ProductionPlan plan = getPlan(planId); assertAssignedWorker(plan, actor);
+        entityManager.lock(plan, jakarta.persistence.LockModeType.OPTIMISTIC_FORCE_INCREMENT);
         var step = plan.getStepExecutions().stream().filter(s -> s.getId().equals(stepId)).findFirst().orElseThrow(() -> new IllegalArgumentException("Production step not found"));
         step.acknowledge(note, actor); audit.record(actor, "ACKNOWLEDGE_OVERDUE", "STEP", step.getId(), note.trim());
     }

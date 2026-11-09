@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css?v=20261107-unslop3" />
-    <script src="/js/app.js?v=20261101-2"></script>
+    <link rel="stylesheet" href="/css/app.css?v=20261109-review-fixes" />
+    <script src="/js/app.js?v=20261109-review-fixes"></script>
     <script defer src="/js/worker-preview.js?v=20261107"></script>
     <title th:text="#{ui.103}">Batch Execution</title>
   </head>
@@ -15,9 +15,6 @@
       <article class="card">
       <h1 th:text="${plan.formula.name}"></h1>
       <p class="hint" th:text="${plan.formula.documentNo+' · Rev '+plan.formula.revision+' · '+plan.plannedDate}"></p>
-      <div class="fb-actions">
-        <a class="fb-action" th:href="@{'/print/work-order/'+${plan.id}}" target="_blank" th:text="#{worker.printWorkOrder}">Print work order</a>
-      </div>
         <div class="metric">
           <span th:text="#{worker.target}">Customer target</span
           ><strong th:text="${plan.targetQuantity+' '+#messages.msg('unit.piece')}"></strong>
@@ -38,11 +35,13 @@
         </div>
         <p
           class="ok"
+          role="status"
           th:if="${message}"
           th:text="${@uiText.translate(message)}"
         ></p>
         <p
           class="error"
+          role="alert"
           th:if="${error}"
           th:text="${@uiText.translate(error)}"
         ></p>
@@ -56,6 +55,7 @@
             ><span th:text="#{worker.lossPercentage}">Loss percentage (%)</span><input
               name="lossPercentage"
               type="number"
+              inputmode="decimal"
               min="0"
               max="100"
               step="0.01"
@@ -75,7 +75,7 @@
               ></span>
               · <span th:text="#{worker.stepTemperature}">Temperature</span>:
               <span
-                th:text="${execution.step.requiresTemperature ? (execution.step.temperatureMinC != null and execution.step.temperatureMaxC != null ? execution.step.temperatureMinC + '–' + execution.step.temperatureMaxC + ' °C' : execution.step.temperatureMinC != null ? '≥ ' + execution.step.temperatureMinC + ' °C' : execution.step.temperatureMaxC != null ? '≤ ' + execution.step.temperatureMaxC + ' °C' : #messages.msg('worker.temperatureRequired')) : #messages.msg('common.notRequired')}"
+                th:text="${execution.step.requiresTemperature ? (execution.step.temperatureMinC != null and execution.step.temperatureMaxC != null ? execution.step.temperatureMinC + '–' + execution.step.temperatureMaxC + ' °C' : execution.step.temperatureMinC != null ? '≥ ' + execution.step.temperatureMinC + ' °C' : execution.step.temperatureMaxC != null ? '≤ ' + execution.step.temperatureMaxC + ' °C' : #messages.msg('worker.temperatureRequired')) : #messages.msg('worker.temperatureNotRecorded')}"
               ></span>
             </p>
             <p>
@@ -88,7 +88,7 @@
             <p
               class="hint step-timer"
               th:if="${execution.status.name()=='IN_PROGRESS' and execution.startedAt!=null and execution.step.targetSeconds!=null}"
-              th:attr="data-started-at=${execution.startedAt},data-target-seconds=${execution.step.targetSeconds}"
+              th:attr="data-started-at=${execution.startedAt},data-target-seconds=${execution.step.targetSeconds},data-label-elapsed=#{worker.elapsed},data-label-overdue=#{worker.overdueTime},data-day=#{unit.day},data-hour=#{unit.hour},data-minute=#{unit.minute},data-second=#{unit.second}"
               aria-live="polite"
             >
               ⏱ <strong>--:--</strong>
@@ -115,6 +115,7 @@
                 ><span th:text="#{worker.temperature}">Temperature (°C)</span><input
                   name="temperature"
                   type="number"
+                  inputmode="decimal"
                   step="0.01"
                   th:attr="min=${execution.step.temperatureMinC},max=${execution.step.temperatureMaxC}"
                   th:required="${execution.step.requiresTemperature}" /></label
@@ -144,24 +145,27 @@
           </div>
         </details>
         <p class="hint worker-completion-wait" th:if="${plan.status.name()=='IN_PROGRESS' and !stepsComplete}" th:text="#{worker.finishStepsFirst}">Complete every step before recording output.</p>
-        <form class="worker-completion-form"
+        <form id="complete-batch" class="worker-completion-form"
+          th:attr="data-target=${plan.targetQuantity},data-allowance=${plan.lossAllowanceQuantity},data-warning=#{batch.confirmException},data-invalid-rejected=#{worker.invalidRejected}"
           th:if="${plan.status.name()=='IN_PROGRESS' and stepsComplete}"
           method="post"
           th:action="@{'/worker/plans/'+${plan.id}+'/complete'}"
         >
-          <p class="hint">
-            <span th:text="#{worker.actualHint}">Actual produced includes rejected units. Good = actual − rejected.</span>
-          </p>
+          <p class="hint" id="worker-output-hint" th:text="#{worker.actualHint}">Enter the total produced, including good and defective units.</p>
+          <p class="hint" id="worker-output-example" th:text="#{worker.actualExample}">Example: 100 total, 1 defective, 99 good.</p>
           <label
             ><span th:text="#{worker.actualProduced}">Actual produced units</span><input
               name="actualProduced"
+              aria-describedby="worker-output-hint worker-output-example"
               type="number"
+              inputmode="numeric"
               min="0"
               required /></label
           ><label
             ><span th:text="#{worker.rejectedLost}">Rejected/lost units</span><input
               name="rejected"
               type="number"
+              inputmode="numeric"
               min="0"
               required /></label
           ><button th:text="#{worker.completeBatch}">Complete batch</button>
@@ -170,6 +174,7 @@
           <p th:text="#{worker.goodQuantity(${plan.goodQuantity})}"></p>
           <p th:text="#{worker.rejectedQuantity(${plan.rejectedQuantity})}"></p>
         </section>
+        <div class="worker-print-action"><a class="fb-action" th:href="@{'/print/work-order/'+${plan.id}}" target="_blank" th:text="#{worker.printWorkOrder}">Print work order</a></div>
       </article>
     </div>
   </body>

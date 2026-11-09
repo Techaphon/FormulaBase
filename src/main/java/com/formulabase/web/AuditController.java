@@ -14,10 +14,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class AuditController {
     private final AuditLogService audit;
     private final SessionHelper sessions;
+    private final com.formulabase.repository.FormulaRepository formulas;
 
-    public AuditController(AuditLogService audit, SessionHelper sessions) {
+    public AuditController(AuditLogService audit, SessionHelper sessions, com.formulabase.repository.FormulaRepository formulas) {
         this.audit = audit;
         this.sessions = sessions;
+        this.formulas = formulas;
     }
 
     @GetMapping
@@ -29,8 +31,13 @@ public class AuditController {
         var user = sessions.current(session);
         if (user == null || (user.getRole() != UserRole.CEO && user.getRole() != UserRole.QC)) return "redirect:/";
         var visibleLogs = audit.search(keyword);
-        if (user.getRole() == UserRole.QC) visibleLogs = visibleLogs.stream()
-                .filter(log -> "FORMULA".equals(log.getSubjectType())).toList();
+        if (user.getRole() == UserRole.QC) {
+            var visibleIds = new java.util.HashSet<>(formulas.findIdsByStatusIn(java.util.List.of(
+                    com.formulabase.domain.FormulaStatus.PENDING_APPROVAL,
+                    com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED)));
+            visibleLogs = visibleLogs.stream().filter(log -> "FORMULA".equals(log.getSubjectType())
+                    && visibleIds.contains(log.getSubjectId())).toList();
+        }
         var logs = visibleLogs.stream()
                 .filter(log -> actor == null || actor.isBlank() || (log.getActor() != null && log.getActor().getUsername().equals(actor)))
                 .filter(log -> action == null || action.isBlank() || log.getAction().equals(action))

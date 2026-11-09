@@ -36,6 +36,7 @@
     </section>
 
     <main class="spec-sheet">
+      <div class="draft-watermark" th:if="${formula.status.name() != 'CONFIRMED'}" th:text="${formula.status.name() == 'SUPERSEDED' ? #messages.msg('print.supersededFormula') : #messages.msg('print.unapprovedFormula')}">UNAPPROVED FORMULA · NOT FOR PRODUCTION</div>
       <h1>
         <span th:text="#{print.bomTitle}">Blending Formula Specification</span>
       </h1>
@@ -52,7 +53,7 @@
           <tr>
             <th th:text="#{print.formulaNo}">Formula no.</th>
             <td th:text="${formula.documentNo}">FM-001</td>
-            <th th:text="#{print.createdDate}">Created date</th>
+            <th th:text="#{print.previewDate}">Preview date</th>
             <td th:text="${#temporals.format(generatedAt, 'yyyy-MM-dd')}">
               2026-10-31
             </td>
@@ -62,7 +63,7 @@
           <tr>
             <th th:text="#{print.revision}">Revision</th>
             <td th:text="${formula.revision}">1</td>
-            <th th:text="#{print.preparedBy}">Prepared by</th>
+            <th th:text="#{print.previewedBy}">Previewed by</th>
             <td th:text="${printedBy}">QC</td>
             <th
               th:text="${percentFormula ? #messages.msg('print.batchMass') : #messages.msg('print.outputUnit')}"
@@ -187,7 +188,7 @@
               <td th:text="${step.instructionFor(#locale.language)}">Instruction</td>
               <td th:text="#{common.active}">On</td>
               <td
-                th:text="${step.targetSeconds == null ? '–' : step.targetSeconds / 60 + ' ' + #messages.msg('formula.targetMinutes')}"
+                th:text="${step.targetSeconds == null ? '–' : step.targetSeconds / 60 + ' ' + #messages.msg('unit.minute')}"
               >
                 –
               </td>

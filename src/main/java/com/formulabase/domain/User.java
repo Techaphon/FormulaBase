@@ -37,6 +37,9 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(nullable = false)
+    private boolean archived = false;
+
     protected User() {
     }
 
@@ -53,9 +56,11 @@ public class User {
     public String getFullName() { return fullName; }
     public UserRole getRole() { return role; }
     public boolean isActive() { return active; }
+    public boolean isArchived() { return archived; }
     public void setUsername(String username) { this.username = username; }
     public void setPassword(String password) { this.password = password; }
     public void setFullName(String fullName) { this.fullName = fullName; }
     public void setRole(UserRole role) { this.role = role; }
     public void setActive(boolean active) { this.active = active; }
+    public void archive() { this.active = false; this.archived = true; }
 }
