@@ -75,6 +75,7 @@ public class PrintController {
                     item.getUnit().name(), item.getUnit().name(), item.getQuantityPerUnit(),
                     item.getQuantityPerUnit().multiply(BigDecimal.valueOf(batchSize)));
         }).toList();
+        model.addAttribute("returnUrl", actor.getRole() == UserRole.WORKER ? "/worker/tasks" : "/formulas/" + id);
         model.addAttribute("formula", formula);
         model.addAttribute("batchSize", batchSize);
         model.addAttribute("percentFormula", percentFormula);
@@ -93,6 +94,7 @@ public class PrintController {
         var details = plans.details(id);
         ProductionPlan plan = details.plan();
         assertWorkOrderAccess(plan, actor);
+        model.addAttribute("returnUrl", actor.getRole() == UserRole.WORKER || actor.getRole() == UserRole.CEO ? "/worker/plans/" + id : actor.getRole() == UserRole.PC ? "/planning/" + plan.getPlanningCycle().getId() : "/workflow");
         model.addAttribute("plan", plan);
         model.addAttribute("draftPreview", plan.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.DRAFT);
         model.addAttribute("materials", details.materials());
@@ -113,7 +115,9 @@ public class PrintController {
     private void assertWorkOrderAccess(ProductionPlan plan, User actor) {
         if (actor.getRole() == UserRole.CEO || actor.getRole() == UserRole.PC || actor.getRole() == UserRole.QC) return;
         if (actor.getRole() == UserRole.WORKER && plan.getAssignedWorker() != null
-                && plan.getAssignedWorker().getId().equals(actor.getId())) return;
+                && plan.getAssignedWorker().getId().equals(actor.getId())
+                && plan.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED
+                && plan.isVisibleToWorkerOn(com.formulabase.config.BusinessTime.today())) return;
         throw new IllegalStateException("You do not have permission to print this work order");
     }
 

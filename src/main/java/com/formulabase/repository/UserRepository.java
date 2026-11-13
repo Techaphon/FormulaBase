@@ -9,6 +9,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select u from User u where u.role = com.formulabase.domain.UserRole.CEO order by u.username")
+    List<User> lockAdministrators();
     Optional<User> findByUsernameIgnoreCase(String username);
     List<User> findByRoleAndActiveTrueAndArchivedFalse(UserRole role);
     List<User> findByArchivedFalse();

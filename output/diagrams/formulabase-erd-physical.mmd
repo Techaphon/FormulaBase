@@ -1,0 +1,148 @@
+erDiagram
+    users {
+        uuid id PK
+        bigint version
+        varchar username UK
+        varchar password
+        varchar full_name
+        varchar role
+        boolean active
+        boolean archived
+        boolean primary_admin
+    }
+    materials {
+        uuid id PK
+        bigint version
+        varchar code UK
+        varchar name
+        varchar stock_unit
+    }
+    formulas {
+        uuid id PK
+        bigint version
+        varchar document_no UK
+        varchar name
+        integer revision
+        varchar status
+        varchar rejection_reason
+        varchar calculation_basis
+        numeric product_unit_weight_grams
+        uuid previous_revision_id FK
+        uuid created_by_id FK
+        uuid submitted_by_id FK
+        timestamp submitted_at
+        uuid approved_by_id FK
+        timestamp approved_at
+        varchar approval_reason
+    }
+    formula_materials {
+        uuid id PK
+        uuid formula_id FK
+        uuid material_id FK
+        numeric quantity_per_unit
+        numeric percentage
+        varchar unit
+        char phase
+    }
+    production_steps {
+        uuid id PK
+        uuid formula_id FK
+        integer step_number
+        varchar instruction
+        varchar instruction_th
+        varchar instruction_en
+        integer target_seconds
+        boolean requires_temperature
+        numeric temperature_min_c
+        numeric temperature_max_c
+    }
+    monthly_planning_cycles {
+        uuid id PK
+        bigint version
+        varchar planning_month UK
+        varchar status
+    }
+    production_plans {
+        uuid id PK
+        bigint version
+        uuid planning_cycle_id FK
+        uuid formula_id FK
+        uuid assigned_worker_id FK
+        date planned_date
+        integer target_quantity
+        numeric loss_percentage
+        integer loss_allowance_quantity
+        integer planned_quantity
+        integer actual_produced_quantity
+        integer rejected_quantity
+        timestamp started_at
+        timestamp completed_at
+        varchar status
+        varchar quality_review_note
+        varchar quality_reviewed_by
+        timestamp quality_reviewed_at
+    }
+    step_executions {
+        uuid id PK
+        uuid production_plan_id FK
+        uuid step_id FK
+        uuid worker_id FK
+        varchar status
+        numeric recorded_temperature
+        timestamp started_at
+        timestamp completed_at
+        boolean overdue
+        boolean was_overdue
+        varchar acknowledgement_note
+        timestamp acknowledged_at
+        uuid acknowledged_by_id FK
+    }
+    production_histories {
+        uuid id PK
+        uuid production_plan_id FK,UK
+        integer target_quantity
+        numeric loss_percentage
+        integer loss_allowance_quantity
+        integer planned_quantity
+        integer actual_produced_quantity
+        integer rejected_quantity
+        integer good_quantity
+        integer surplus_quantity
+        timestamp completed_at
+    }
+    reschedule_logs {
+        uuid id PK
+        uuid production_plan_id FK
+        date previous_date
+        date new_date
+        varchar reason
+        uuid changed_by_id FK
+        timestamp changed_at
+    }
+    audit_logs {
+        uuid id PK
+        uuid actor_id FK
+        varchar action
+        varchar subject_type
+        uuid subject_id
+        varchar details
+        timestamp created_at
+    }
+    users o|--o{ formulas : created_by
+    users o|--o{ formulas : submitted_by
+    users o|--o{ formulas : approved_by
+    formulas o|--o{ formulas : previous_revision
+    formulas ||--o{ formula_materials : formula_id
+    materials ||--o{ formula_materials : material_id
+    formulas ||--o{ production_steps : formula_id
+    monthly_planning_cycles ||--o{ production_plans : planning_cycle_id
+    formulas ||--o{ production_plans : formula_id
+    users o|--o{ production_plans : assigned_worker_id
+    production_plans ||--o{ step_executions : production_plan_id
+    production_steps ||--o{ step_executions : step_id
+    users o|--o{ step_executions : worker_id
+    users o|--o{ step_executions : acknowledged_by_id
+    production_plans ||--o| production_histories : production_plan_id
+    production_plans ||--o{ reschedule_logs : production_plan_id
+    users o|--o{ reschedule_logs : changed_by_id
+    users o|--o{ audit_logs : actor_id

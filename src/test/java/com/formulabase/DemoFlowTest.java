@@ -30,7 +30,7 @@ class DemoFlowTest {
         var pc = users.findByUsernameIgnoreCase("pc").orElseThrow();
         var formula = formulas.create("DELETE-PLAN-001", "Test formula", List.of(""), List.of("DEL-RM"),
                 List.of("Water"), List.of("ML"), List.of(BigDecimal.TEN), qc);
-        formulas.submitForApproval(formula.getId(), qc); formulas.confirm(formula.getId(), ceo);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc); formulas.confirm(formula.getId(), ceo);
         var cycle = planning.createCycle("2035-02", pc);
         var first = planning.addPlan(cycle.getId(), formula.getId(), null, LocalDate.of(2035,2,10), 10, pc);
         var second = planning.addPlan(cycle.getId(), formula.getId(), null, LocalDate.of(2035,2,11), 20, pc);
@@ -45,7 +45,9 @@ class DemoFlowTest {
         assertThrows(IllegalStateException.class, () -> planning.deleteCycle(cycle.getId(), ceo));
         assertThrows(IllegalStateException.class, () -> planning.deletePlan(cycle.getId(), second.getId(), ceo));
         var disposable = planning.createCycle("2035-03", pc);
-        planning.addPlan(disposable.getId(), formula.getId(), null, LocalDate.of(2035,3,1), 5, pc);
+        var oldCancelled = planning.addPlan(disposable.getId(), formula.getId(), null, LocalDate.of(2035,3,1), 5, pc);
+        planning.reschedule(oldCancelled.getId(), LocalDate.of(2035,3,2), null, "legacy change", pc);
+        oldCancelled.cancel(); // Existing cancelled records created before physical deletion was introduced.
         var id = disposable.getId();
         planning.deleteCycle(id, pc);
         assertThrows(IllegalArgumentException.class, () -> planning.getCycle(id));
@@ -59,7 +61,7 @@ class DemoFlowTest {
         var replacement = userService.create("handover-worker", "password1234", "Next worker", UserRole.WORKER, ceo);
         var formula = formulas.createWithSteps("TRANSFER-001", "Transfer cream", List.of(""), List.of("TRANSFER-RM"),
                 List.of("Water"), List.of("ML"), List.of(BigDecimal.TEN), List.of("Mix"), List.of(600), List.of(false), qc);
-        formulas.submitForApproval(formula.getId(), qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc);
         formulas.confirm(formula.getId(), ceo);
         var cycle = planning.createCycle(LocalDate.now().toString().substring(0, 7));
         var plan = planning.addPlan(cycle.getId(), formula.getId(), previous.getId(), LocalDate.now(), 100);
@@ -94,6 +96,40 @@ class DemoFlowTest {
         assertEquals(2, audit.transfersFor(List.of(plan.getId(), waiting.getId())).size());
     }
 
+    @Test void deactivationRequiresTransferAndKeepsProgress() {
+        var ceo=users.findByUsernameIgnoreCase("ceo").orElseThrow();
+        var qc=users.findByUsernameIgnoreCase("qc").orElseThrow();
+        var previous=userService.create("deactivate-worker","password1234","Previous",UserRole.WORKER,ceo);
+        var next=userService.create("deactivate-next","password1234","Next",UserRole.WORKER,ceo);
+        var formula=formulas.createWithSteps("DEACT-001","Cream",List.of(""),List.of("DEACT-RM"),List.of("Water"),List.of("ML"),List.of(BigDecimal.TEN),List.of("Mix"),List.of(60),List.of(false),qc);
+        formulas.submitForApproval(formula.getId(),qc);formulas.confirm(formula.getId(),ceo);
+        var cycle=planning.createCycle(LocalDate.now().toString().substring(0,7));
+        var plan=planning.addPlan(cycle.getId(),formula.getId(),previous.getId(),LocalDate.now(),10);planning.lockCycle(cycle.getId());production.start(plan.getId(),previous,BigDecimal.ZERO);
+        var step=production.steps(plan.getId()).get(0);production.startStep(plan.getId(),step.getId(),previous);var started=step.getStartedAt();
+        assertThrows(IllegalStateException.class,()->userService.toggle(previous.getId(),ceo));
+        assertThrows(IllegalArgumentException.class,()->userService.deactivateWithTransfers(previous.getId(),ceo,java.util.Map.of(),java.util.Map.of()));
+        userService.deactivateWithTransfers(previous.getId(),ceo,java.util.Map.of(plan.getId(),next.getId()),java.util.Map.of(plan.getId(),plan.getVersion()));
+        assertFalse(previous.isActive());assertFalse(previous.isArchived());assertEquals(next.getId(),plan.getAssignedWorker().getId());assertEquals(started,step.getStartedAt());assertEquals(previous.getId(),step.getWorker().getId());
+        production.completeStep(plan.getId(),step.getId(),null,next);production.complete(plan.getId(),next,10,0);
+    }
+    @Test void qcCannotSubmitAnotherQcsDraft() {
+        var ceo=users.findByUsernameIgnoreCase("ceo").orElseThrow();var qc=users.findByUsernameIgnoreCase("qc").orElseThrow();
+        var other=userService.create("another-qc","password1234","Other QC",UserRole.QC,ceo);
+        var formula=formulas.createWithSteps("DRAFT-OWNER-001","Draft",List.of(""),List.of("DRAFT-OWNER-RM"),List.of("Water"),List.of("ML"),List.of(BigDecimal.ONE),List.of("Mix"),List.of(60),List.of(false),qc);
+        assertThrows(IllegalStateException.class,()->formulas.submitForApproval(formula.getId(),other));assertEquals(FormulaStatus.DRAFT,formula.getStatus());
+        formulas.submitForApproval(formula.getId(),qc);assertEquals(FormulaStatus.PENDING_APPROVAL,formula.getStatus());
+    }
+
+    @Test void pcCanUpdateLockedMonthAndWorkerSeesOnlyToday() {
+        var ceo=users.findByUsernameIgnoreCase("ceo").orElseThrow();var qc=users.findByUsernameIgnoreCase("qc").orElseThrow();var pc=users.findByUsernameIgnoreCase("pc").orElseThrow();var worker=users.findByUsernameIgnoreCase("worker1").orElseThrow();
+        var f=formulas.createWithSteps("PC-LOCKED-001","Formula",List.of(""),List.of("PC-LOCKED-RM"),List.of("Water"),List.of("ML"),List.of(BigDecimal.ONE),List.of("Mix"),List.of(60),List.of(false),qc);
+        formulas.submitForApproval(f.getId(),qc);formulas.confirm(f.getId(),ceo);
+        var date=LocalDate.of(2036,2,15);var cycle=planning.createCycle("2036-02",pc);var old=planning.addPlan(cycle.getId(),f.getId(),worker.getId(),date.minusDays(1),10,pc);var current=planning.addPlan(cycle.getId(),f.getId(),worker.getId(),date,10,pc);var future=planning.addPlan(cycle.getId(),f.getId(),worker.getId(),date.plusDays(1),10,pc);planning.lockCycle(cycle.getId(),pc);
+        var added=planning.addPlan(cycle.getId(),f.getId(),worker.getId(),date.plusDays(2),10,pc);planning.reschedule(added.getId(),date.plusDays(3),worker.getId(),"Change",pc);planning.cancel(added.getId(),pc);
+        assertEquals(List.of(current.getId()),production.tasksForWorker(worker,date).stream().map(ProductionPlan::getId).toList());
+        assertEquals(3,planning.plans(cycle.getId()).size());
+    }
+
     @Test void userDeletionProtectsIdentityAndHistory() {
         var ceo = users.findByUsernameIgnoreCase("ceo").orElseThrow();
         var qc = users.findByUsernameIgnoreCase("qc").orElseThrow();
@@ -119,7 +155,7 @@ class DemoFlowTest {
         var worker=users.findByUsernameIgnoreCase("worker1").orElseThrow();
         var formula=formulas.create("FLOW-001", "Demo serum", List.of(""), List.of("FLOW-RM"),
                 List.of("Water"), List.of("ML"), List.of(new BigDecimal("10")), qc);
-        formulas.submitForApproval(formula.getId(),qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(),qc);
         assertThrows(IllegalStateException.class,()->formulas.confirm(formula.getId(),qc));
         formulas.confirm(formula.getId(),ceo);
         var cycle=planning.createCycle(LocalDate.now().toString().substring(0,7));
@@ -145,7 +181,7 @@ class DemoFlowTest {
         var pc = users.findByUsernameIgnoreCase("pc").orElseThrow();
         var formula = formulas.create("OVERDUE-001", "Overdue plan", List.of(""), List.of("OVERDUE-RM"),
                 List.of("Water"), List.of("G"), List.of(BigDecimal.ONE), qc);
-        formulas.submitForApproval(formula.getId(), qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc);
         formulas.confirm(formula.getId(), ceo);
         var past = LocalDate.now(com.formulabase.config.BusinessTime.ZONE).minusDays(1);
         var cycle = planning.createCycle(past.toString().substring(0, 7));
@@ -160,11 +196,12 @@ class DemoFlowTest {
         var ceo = users.findByUsernameIgnoreCase("ceo").orElseThrow();
         var formula = formulas.create("CANCEL-ONLY", "Cancelled task", List.of(""), List.of("CANCEL-RM"),
                 List.of("Water"), List.of("G"), List.of(BigDecimal.ONE), qc);
-        formulas.submitForApproval(formula.getId(), qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc);
         formulas.confirm(formula.getId(), ceo);
         var cycle = planning.createCycle(LocalDate.now().toString().substring(0, 7));
         var plan = planning.addPlan(cycle.getId(), formula.getId(), null, LocalDate.now(), 10);
         planning.cancel(plan.getId(), ceo);
+        assertTrue(planning.plans(cycle.getId()).isEmpty());
         assertThrows(IllegalStateException.class, () -> planning.lockCycle(cycle.getId(), ceo));
         assertEquals(MonthlyPlanningCycleStatus.DRAFT, cycle.getStatus());
     }
@@ -175,7 +212,7 @@ class DemoFlowTest {
         var worker=users.findByUsernameIgnoreCase("worker1").orElseThrow();
         var formula=formulas.create("QC-001", "Quality test", List.of(""), List.of("QC-RM"),
                 List.of("Water"), List.of("ML"), List.of(new BigDecimal("10")), qc);
-        formulas.submitForApproval(formula.getId(),qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(),qc);
         formulas.confirm(formula.getId(),ceo);
         var cycle=planning.createCycle(LocalDate.now().toString().substring(0,7));
         var plan=planning.addPlan(cycle.getId(),formula.getId(),worker.getId(),LocalDate.now(),100);
@@ -201,7 +238,7 @@ class DemoFlowTest {
         var formula = formulas.create("APPROVAL-001", "Approval test", List.of(""), List.of("APPROVAL-RM"),
                 List.of("Water"), List.of("ML"), List.of(BigDecimal.ONE), qc);
         assertThrows(IllegalStateException.class, () -> formulas.confirm(formula.getId(), ceo));
-        formulas.submitForApproval(formula.getId(), qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc);
         formulas.confirm(formula.getId(), ceo);
         assertEquals(FormulaStatus.CONFIRMED, formula.getStatus());
     }
@@ -229,7 +266,7 @@ class DemoFlowTest {
                 List.of("A", "B"), FormulaCalculationBasis.PERCENT_W_W, new BigDecimal("60"),
                 List.of(new BigDecimal("60"), new BigDecimal("40")), null,
                 null, null, null, qc);
-        formulas.submitForApproval(formula.getId(), qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc);
         formulas.confirm(formula.getId(), ceo);
         var cycle = planning.createCycle(LocalDate.now().toString().substring(0, 7));
         var plan = planning.addPlan(cycle.getId(), formula.getId(), worker.getId(), LocalDate.now(), 100);
@@ -251,7 +288,7 @@ class DemoFlowTest {
                 List.of("REV-RM"), List.of("Water"), List.of("G"), List.of("A"),
                 FormulaCalculationBasis.PERCENT_W_W, new BigDecimal("10"), List.of(new BigDecimal("100")), null,
                 null, null, null, qc);
-        formulas.submitForApproval(formula.getId(), qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc);
         formulas.confirm(formula.getId(), ceo);
         var revision = formulas.createRevision(formula.getId(), qc);
         assertEquals(FormulaStatus.CONFIRMED, formula.getStatus());
@@ -269,7 +306,7 @@ class DemoFlowTest {
         var ceo = users.findByUsernameIgnoreCase("ceo").orElseThrow();
         var formula = formulas.create("REV-NUMBER-001", "Revision numbering", List.of(""), List.of("REV-NUMBER-RM"),
                 List.of("Water"), List.of("G"), List.of(BigDecimal.ONE), qc);
-        formulas.submitForApproval(formula.getId(), qc);
+        if (formula.getCreatedBy() == null) formula.setCreatedBy(qc); formulas.submitForApproval(formula.getId(), qc);
         formulas.confirm(formula.getId(), ceo);
 
         var first = formulas.createRevision(formula.getId(), qc);

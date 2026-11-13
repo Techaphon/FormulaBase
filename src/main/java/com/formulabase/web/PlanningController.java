@@ -68,9 +68,7 @@ public class PlanningController {
                 .toList();
         model.addAttribute("cancelledCount", allPlans.size() - plans.size());
         model.addAttribute("deleteBlockedCount", allPlans.stream().filter(plan ->
-                (plan.getStatus() != com.formulabase.domain.ProductionPlanStatus.PLANNED
-                        && plan.getStatus() != com.formulabase.domain.ProductionPlanStatus.CANCELLED)
-                        || plan.getStartedAt() != null || !plan.getRescheduleLogs().isEmpty()).count());
+                !plan.isDeletableDraftTask()).count());
         model.addAttribute("plans", plans);
         model.addAttribute("transferHistory", audit.transfersFor(plans.stream().map(com.formulabase.domain.ProductionPlan::getId).toList()));
         model.addAttribute("unassignedCount", plans.stream().filter(plan -> plan.getAssignedWorker() == null && plan.getStatus() == com.formulabase.domain.ProductionPlanStatus.PLANNED).count());

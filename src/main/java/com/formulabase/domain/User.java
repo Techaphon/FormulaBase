@@ -40,6 +40,11 @@ public class User {
     @Column(nullable = false)
     private boolean archived = false;
 
+    @Column(nullable = false)
+    private boolean primaryAdmin = false;
+    public boolean isPrimaryAdmin() { return primaryAdmin; }
+    public void protectAsPrimaryAdmin() { if (role != UserRole.CEO) throw new IllegalStateException("Only CEO can be primary administrator"); primaryAdmin = true; }
+
     protected User() {
     }
 
@@ -60,7 +65,7 @@ public class User {
     public void setUsername(String username) { this.username = username; }
     public void setPassword(String password) { this.password = password; }
     public void setFullName(String fullName) { this.fullName = fullName; }
-    public void setRole(UserRole role) { this.role = role; }
-    public void setActive(boolean active) { this.active = active; }
-    public void archive() { this.active = false; this.archived = true; }
+    public void setRole(UserRole role) { if (primaryAdmin && role != UserRole.CEO) throw new IllegalStateException("Primary administrator is protected"); this.role = role; }
+    public void setActive(boolean active) { if (primaryAdmin && !active) throw new IllegalStateException("Primary administrator is protected"); this.active = active; }
+    public void archive() { if (primaryAdmin) throw new IllegalStateException("Primary administrator is protected"); this.active = false; this.archived = true; }
 }

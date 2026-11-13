@@ -1,0 +1,19 @@
+erDiagram
+    USER o|--o{ FORMULA : creates
+    USER o|--o{ FORMULA : submits
+    USER o|--o{ FORMULA : approves
+    FORMULA o|--o{ FORMULA : revises
+    FORMULA ||--o{ FORMULA_MATERIAL : contains
+    MATERIAL ||--o{ FORMULA_MATERIAL : used_in
+    FORMULA ||--o{ PRODUCTION_STEP : defines
+    MONTHLY_PLAN ||--o{ PRODUCTION_TASK : contains
+    FORMULA ||--o{ PRODUCTION_TASK : specifies
+    USER o|--o{ PRODUCTION_TASK : assigned_worker
+    PRODUCTION_TASK ||--o{ STEP_EXECUTION : includes
+    PRODUCTION_STEP ||--o{ STEP_EXECUTION : performed_as
+    USER o|--o{ STEP_EXECUTION : performed_by
+    USER o|--o{ STEP_EXECUTION : acknowledged_by
+    PRODUCTION_TASK ||--o| PRODUCTION_HISTORY : produces
+    PRODUCTION_TASK ||--o{ RESCHEDULE_LOG : has
+    USER o|--o{ RESCHEDULE_LOG : changed_by
+    USER o|--o{ AUDIT_LOG : performs

@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 @RequestMapping("/audit")
 public class AuditController {
-    private final AuditLogService audit;
+    private final com.formulabase.service.AuditSearchService audit;
     private final SessionHelper sessions;
     private final com.formulabase.repository.FormulaRepository formulas;
 
-    public AuditController(AuditLogService audit, SessionHelper sessions, com.formulabase.repository.FormulaRepository formulas) {
+    public AuditController(com.formulabase.service.AuditSearchService audit, SessionHelper sessions, com.formulabase.repository.FormulaRepository formulas) {
         this.audit = audit;
         this.sessions = sessions;
         this.formulas = formulas;
@@ -27,30 +27,22 @@ public class AuditController {
                        @RequestParam(required = false) String actor,
                        @RequestParam(required = false) String action,
                        @RequestParam(required = false) String subject,
-                       HttpSession session, Model model) {
+                       @RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
         var user = sessions.current(session);
         if (user == null || (user.getRole() != UserRole.CEO && user.getRole() != UserRole.QC)) return "redirect:/";
-        var visibleLogs = audit.search(keyword);
-        if (user.getRole() == UserRole.QC) {
-            var visibleIds = new java.util.HashSet<>(formulas.findIdsByStatusIn(java.util.List.of(
-                    com.formulabase.domain.FormulaStatus.PENDING_APPROVAL,
-                    com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED)));
-            visibleLogs = visibleLogs.stream().filter(log -> "FORMULA".equals(log.getSubjectType())
-                    && visibleIds.contains(log.getSubjectId())).toList();
-        }
-        var logs = visibleLogs.stream()
-                .filter(log -> actor == null || actor.isBlank() || (log.getActor() != null && log.getActor().getUsername().equals(actor)))
-                .filter(log -> action == null || action.isBlank() || log.getAction().equals(action))
-                .filter(log -> subject == null || subject.isBlank() || log.getSubjectType().equals(subject))
-                .toList();
-        model.addAttribute("logs", logs);
+        java.util.Set<java.util.UUID> visibleIds = null;
+        if (user.getRole() == UserRole.QC) visibleIds = new java.util.HashSet<>(formulas.findIdsByStatusIn(java.util.List.of(
+            com.formulabase.domain.FormulaStatus.PENDING_APPROVAL, com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED, com.formulabase.domain.FormulaStatus.SUPERSEDED)));
+        var result = audit.search(keyword,actor,action,subject,page,visibleIds);
+        model.addAttribute("logs",result.getContent());
+        model.addAttribute("resultPage",result);
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("selectedActor", actor == null ? "" : actor);
         model.addAttribute("selectedAction", action == null ? "" : action);
         model.addAttribute("selectedSubject", subject == null ? "" : subject);
-        model.addAttribute("actors", visibleLogs.stream().map(log -> log.getActor()).filter(java.util.Objects::nonNull).distinct().toList());
-        model.addAttribute("actions", visibleLogs.stream().map(log -> log.getAction()).distinct().sorted().toList());
-        model.addAttribute("subjects", visibleLogs.stream().map(log -> log.getSubjectType()).distinct().sorted().toList());
+        model.addAttribute("actors", audit.actors(visibleIds));
+        model.addAttribute("actions", audit.options("action",visibleIds));
+        model.addAttribute("subjects", audit.options("subjectType",visibleIds));
         model.addAttribute("formulaOnly", user.getRole() == UserRole.QC);
         return "audit/list";
     }

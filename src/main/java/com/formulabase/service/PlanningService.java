@@ -77,7 +77,7 @@ public class PlanningService {
     @Transactional
     public ProductionPlan addPlan(UUID cycleId, UUID formulaId, UUID workerId, LocalDate plannedDate, int targetQuantity, User actor) {
         MonthlyPlanningCycle cycle = lockedCycle(cycleId);
-        if (cycle.getStatus() == MonthlyPlanningCycleStatus.LOCKED && (actor == null || actor.getRole() != UserRole.CEO)) {
+        if (cycle.getStatus() == MonthlyPlanningCycleStatus.LOCKED && (actor == null || (actor.getRole() != UserRole.CEO && actor.getRole() != UserRole.PC))) {
             throw new IllegalStateException("Locked planning cycle cannot be edited");
         }
         Formula formula = formulaRepository.findById(formulaId)
@@ -135,9 +135,13 @@ public class PlanningService {
     public void cancel(UUID planId, User actor) {
         if (actor == null || (actor.getRole() != UserRole.CEO && actor.getRole() != UserRole.PC)) throw new IllegalStateException("Only CEO or PC can cancel a plan");
         ProductionPlan plan = planRepository.findById(planId).orElseThrow(() -> new IllegalArgumentException("Production plan not found"));
-        if (plan.getPlanningCycle().getStatus() == MonthlyPlanningCycleStatus.LOCKED && actor.getRole() != UserRole.CEO) throw new IllegalStateException("Only CEO can change a locked month");
+        if (plan.getStartedAt() != null) throw new IllegalStateException("Only planned tasks can be cancelled");
         plan.cancel();
         audit.record(actor, "CANCEL_PLAN", "PLAN", plan.getId(), "Cancelled task on " + plan.getPlannedDate());
+        // Cancelled work has not started. Remove the task and its schedule details;
+        // the audit entry remains as a record of who performed the cancellation.
+        planRepository.delete(plan);
+        planRepository.flush();
     }
 
     private MonthlyPlanningCycle lockedCycle(UUID id) {
@@ -152,8 +156,7 @@ public class PlanningService {
     }
 
     private void checkDeletable(ProductionPlan plan) {
-        if ((plan.getStatus() != ProductionPlanStatus.PLANNED && plan.getStatus() != ProductionPlanStatus.CANCELLED)
-                || plan.getStartedAt() != null || !plan.getRescheduleLogs().isEmpty())
+        if (!plan.isDeletableDraftTask())
             throw new IllegalStateException("Cannot delete a task with production or schedule history");
     }
 

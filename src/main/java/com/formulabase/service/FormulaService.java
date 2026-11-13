@@ -248,6 +248,7 @@ public class FormulaService {
         if (formula.getStatus() != FormulaStatus.DRAFT && formula.getStatus() != FormulaStatus.REJECTED) {
             throw new IllegalStateException("Only draft or rejected formulas can be submitted");
         }
+        if (actor.getRole() == UserRole.QC && (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(actor.getId()))) throw new IllegalStateException("QC can submit only a formula they created");
         formula.recordSubmission(actor);
         formula.setStatus(FormulaStatus.PENDING_APPROVAL);
         audit.record(actor, "SUBMIT_FORMULA", "FORMULA", formula.getId(), "Submitted " + formula.getDocumentNo() + " for approval");

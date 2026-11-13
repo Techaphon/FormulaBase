@@ -10,7 +10,7 @@
   </head>
   <body class="print-document">
     <section class="document-toolbar no-print">
-      <a class="button button-secondary" href="javascript:history.back()"
+      <a class="button button-secondary" th:href="${returnUrl}"
         th:text="#{print.back}">← Back</a
       >
       <span class="toolbar-caption"

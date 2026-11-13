@@ -36,7 +36,9 @@ public class DemoSeedConfig {
     private void createIfMissing(UserRepository repository, PasswordEncoder encoder, String username,
                                  String fullName, UserRole role, String password) {
         if (repository.findByUsernameIgnoreCase(username).isEmpty()) {
-            repository.save(new User(username, encoder.encode(password), fullName, role));
+            User user = new User(username, encoder.encode(password), fullName, role);
+            if (role == UserRole.CEO && repository.findByRoleAndActiveTrueAndArchivedFalse(UserRole.CEO).isEmpty()) user.protectAsPrimaryAdmin();
+            repository.save(user);
         }
     }
 }

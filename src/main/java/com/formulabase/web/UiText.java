@@ -5,6 +5,9 @@ import org.springframework.context.i18n.LocaleContextHolder;
 @Component("uiText")
 public class UiText {
  private static final Map<String,String> TH = Map.ofEntries(
+Map.entry("Primary administrator is protected","ไม่สามารถลบหรือปิดบัญชีผู้ดูแลหลักได้"),
+Map.entry("QC can submit only a formula they created","QC ส่งอนุมัติได้เฉพาะสูตรที่ตนสร้าง"),
+Map.entry("Transfer unfinished work before deactivating this account","บัญชีนี้มีงานค้าง กรุณาส่งต่องานก่อนปิดใช้งาน"),
 Map.entry("Batch started","เริ่มผลิตแล้ว"),
 Map.entry("Batch recorded","บันทึกผลการผลิตแล้ว"),
 Map.entry("Material saved","บันทึกวัตถุดิบแล้ว"),

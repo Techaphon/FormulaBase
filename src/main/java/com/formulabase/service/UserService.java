@@ -23,6 +23,24 @@ public class UserService {
     public UserService(UserRepository repository, PasswordEncoder passwordEncoder, AuditLogService audit, ProductionPlanRepository plans) { this.repository = repository; this.passwordEncoder = passwordEncoder; this.audit = audit; this.plans = plans; }
 
     @Transactional
+    public void ensurePrimaryAdministrator() {
+        var admins = repository.lockAdministrators();
+        if (admins.stream().anyMatch(User::isPrimaryAdmin)) return;
+        admins.stream().filter(u -> u.isActive() && !u.isArchived())
+            .sorted(java.util.Comparator.comparing(u -> !u.getUsername().equalsIgnoreCase("ceo")))
+            .findFirst().ifPresent(User::protectAsPrimaryAdmin);
+    }
+
+    // Serialize administrator mutations in one deterministic lock order. Recheck
+    // the persisted actor after taking the locks, not a detached session snapshot.
+    private User requireActiveAdministrator(User actor) {
+        if (actor == null || actor.getId() == null) throw new IllegalStateException("Only CEO can manage users");
+        return repository.lockAdministrators().stream()
+                .filter(current -> current.getId().equals(actor.getId()) && current.isActive() && !current.isArchived())
+                .findFirst().orElseThrow(() -> new IllegalStateException("Only CEO can manage users"));
+    }
+
+    @Transactional
     public User authenticate(String username, String password) {
         User user = repository.findByUsernameIgnoreCase(username)
                 .filter(candidate -> candidate.isActive() && !candidate.isArchived())
@@ -53,20 +71,26 @@ public class UserService {
     }
     @Transactional
     public User create(String username, String password, String fullName, UserRole role, User actor) {
-        if (actor == null || actor.getRole() != UserRole.CEO) throw new IllegalStateException("Only CEO can manage users");
+        actor = requireActiveAdministrator(actor);
         if (username == null || username.isBlank() || password == null || password.isBlank() || fullName == null || fullName.isBlank() || role == null) throw new IllegalArgumentException("Complete all user fields");
         var existing = repository.findByUsernameIgnoreCase(username.trim());
         if (existing.isPresent()) throw new IllegalArgumentException(existing.get().isArchived() ? "Username belongs to a removed account" : "Username already exists");
         if (password.length() < 10) throw new IllegalArgumentException("Password must contain at least 10 characters");
-        return repository.save(new User(username.trim(), passwordEncoder.encode(password), fullName.trim(), role));
+        User created = repository.save(new User(username.trim(), passwordEncoder.encode(password), fullName.trim(), role));
+        audit.record(actor,"CREATE_USER","USER",created.getId(),"Created @"+created.getUsername());
+        return created;
     }
     @Transactional
     public User toggle(java.util.UUID id, User actor) {
-        if (actor == null || actor.getRole() != UserRole.CEO) throw new IllegalStateException("Only CEO can manage users");
+        actor = requireActiveAdministrator(actor);
         User user = repository.findLockedById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (user.isArchived()) throw new IllegalArgumentException("User not found");
+        if (user.isPrimaryAdmin()) throw new IllegalArgumentException("Primary administrator is protected");
         if (user.getId().equals(actor.getId())) throw new IllegalArgumentException("CEO cannot deactivate the current account");
-        user.setActive(!user.isActive()); return user;
+        if (user.isActive() && !unfinishedTasks(id).isEmpty()) throw new IllegalStateException("Transfer unfinished work before deactivating this account");
+        user.setActive(!user.isActive());
+        audit.record(actor,"TOGGLE_USER","USER",id,"User @"+user.getUsername()+" active="+user.isActive());
+        return user;
     }
 
     @Transactional
@@ -81,10 +105,21 @@ public class UserService {
 
     @Transactional
     public void deleteWithTransfers(UUID id, User actor, Map<UUID, UUID> replacements, Map<UUID, Long> versions) {
-        if (actor == null || actor.getRole() != UserRole.CEO) throw new IllegalStateException("Only CEO can manage users");
+        finishAccountTransfer(id, actor, replacements, versions, true);
+    }
+
+    @Transactional
+    public void deactivateWithTransfers(UUID id, User actor, Map<UUID, UUID> replacements, Map<UUID, Long> versions) {
+        finishAccountTransfer(id, actor, replacements, versions, false);
+    }
+
+    private void finishAccountTransfer(UUID id, User actor, Map<UUID, UUID> replacements, Map<UUID, Long> versions, boolean archive) {
+        actor = requireActiveAdministrator(actor);
         User user = repository.findLockedById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
         if (id.equals(actor.getId())) throw new IllegalArgumentException("Cannot delete your own account");
         if (user.isArchived()) throw new IllegalArgumentException("User not found");
+        if (user.isPrimaryAdmin()) throw new IllegalArgumentException("Primary administrator is protected");
+        if (!archive && !user.isActive()) throw new IllegalStateException("Account is already inactive");
         List<ProductionPlan> open = unfinishedTasks(id);
         var required = open.stream().map(ProductionPlan::getId).collect(java.util.stream.Collectors.toSet());
         if (!required.equals(replacements.keySet()) || !required.equals(versions.keySet())) throw new IllegalArgumentException("Choose a replacement for every unfinished task");
@@ -100,7 +135,12 @@ public class UserService {
             plan.assignWorker(next);
             audit.record(actor, "TRANSFER_WORK", "PLAN", plan.getId(), user.getFullName() + " (@" + user.getUsername() + ") → " + next.getFullName() + " (@" + next.getUsername() + ") · " + plan.getFormula().getDocumentNo() + " · " + plan.getPlannedDate());
         }
-        user.archive();
-        audit.record(actor, "DELETE_USER", "USER", id, "Removed @" + user.getUsername() + " from user management; history retained");
+        if (archive) {
+            user.archive();
+            audit.record(actor, "DELETE_USER", "USER", id, "Removed @" + user.getUsername() + " from user management; history retained");
+        } else {
+            user.setActive(false);
+            audit.record(actor, "TOGGLE_USER", "USER", id, "User @" + user.getUsername() + " active=false");
+        }
     }
 }

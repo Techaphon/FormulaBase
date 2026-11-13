@@ -45,7 +45,7 @@ public class ProductionExecutionService {
                 worker.getId(), today,
                 List.of(ProductionPlanStatus.PLANNED, ProductionPlanStatus.IN_PROGRESS,
                         ProductionPlanStatus.LOSS_EXCEPTION)).stream()
-                .filter(p -> p.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED)
+                .filter(p -> p.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED && p.isVisibleToWorkerOn(today))
                 .sorted(taskOrder()).toList();
     }
 
@@ -61,7 +61,12 @@ public class ProductionExecutionService {
     @Transactional(readOnly = true)
     public boolean hasAssignedPlanForFormula(UUID formulaId, User worker) {
         return worker != null && worker.getRole() == UserRole.WORKER
-                && planRepository.existsByFormulaIdAndAssignedWorkerId(formulaId, worker.getId());
+                && planRepository.findByAssignedWorkerIdAndPlannedDateLessThanEqualAndStatusInOrderByPlannedDateAsc(
+                    worker.getId(), com.formulabase.config.BusinessTime.today(),
+                    List.of(ProductionPlanStatus.PLANNED, ProductionPlanStatus.IN_PROGRESS, ProductionPlanStatus.LOSS_EXCEPTION, ProductionPlanStatus.COMPLETED))
+                .stream().anyMatch(plan -> plan.getPlanningCycle().getStatus() == com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED
+                    && plan.isVisibleToWorkerOn(com.formulabase.config.BusinessTime.today())
+                    && plan.getFormula().getId().equals(formulaId));
     }
 
     @Transactional
@@ -70,7 +75,7 @@ public class ProductionExecutionService {
         assertAssignedWorker(plan, worker);
         if (plan.getPlanningCycle().getStatus() != com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED)
             throw new IllegalStateException("Lock the monthly plan before starting production");
-        if (plan.getPlannedDate().isAfter(com.formulabase.config.BusinessTime.today())) throw new IllegalStateException("This task is scheduled for a future date");
+        if (!plan.getPlannedDate().equals(com.formulabase.config.BusinessTime.today())) throw new IllegalStateException("This task is not scheduled for today");
         if (lossPercentage == null) throw new IllegalArgumentException("Loss percentage is required before Start");
         var result = quantityCalculationService.calculate(plan.getTargetQuantity(), lossPercentage);
         plan.start(lossPercentage, new ProductionPlan.QuantitySnapshot(
@@ -185,8 +190,8 @@ public class ProductionExecutionService {
                               List<com.formulabase.domain.StepExecution> steps) { }
 
     private void assertAssignedWorker(ProductionPlan plan, User worker) {
-        if (worker != null && worker.getRole() == UserRole.CEO) return;
         if (worker == null || worker.getRole() != UserRole.WORKER
+                || !plan.isVisibleToWorkerOn(com.formulabase.config.BusinessTime.today())
                 || plan.getAssignedWorker() == null
                 || !plan.getAssignedWorker().getId().equals(worker.getId())) {
             throw new IllegalArgumentException("This batch is not assigned to the current worker");

@@ -41,7 +41,7 @@ public class WorkerController {
         if (user == null || (user.getRole() != UserRole.WORKER && user.getRole() != UserRole.CEO)) return "redirect:/login";
         var details = executionService.details(id);
         var plan = details.plan();
-        if (user.getRole() != UserRole.CEO && (plan.getAssignedWorker() == null || !plan.getAssignedWorker().getId().equals(user.getId()))) return "redirect:/worker/tasks";
+        if (user.getRole() != UserRole.CEO && (plan.getAssignedWorker() == null || !plan.getAssignedWorker().getId().equals(user.getId()) || plan.getPlanningCycle().getStatus() != com.formulabase.domain.MonthlyPlanningCycleStatus.LOCKED || !plan.isVisibleToWorkerOn(com.formulabase.config.BusinessTime.today()))) return "redirect:/worker/tasks";
         model.addAttribute("user", user);
         model.addAttribute("plan", plan);
         model.addAttribute("materials", details.materials());

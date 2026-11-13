@@ -19,7 +19,10 @@ public class RoleAccess implements WebMvcConfigurer {
                 var user = sessions.current(request.getSession());
                 String path = request.getServletPath();
                 if (user == null) { response.sendRedirect("/login"); return false; }
-                if (user.getRole() == UserRole.CEO) return true;
+                if (user.getRole() == UserRole.CEO) {
+                    if (path.startsWith("/worker/") && !request.getMethod().equals("GET")) { response.sendError(403); return false; }
+                    return true;
+                }
                 boolean read = request.getMethod().equals("GET");
                 boolean allowed = path.equals("/") || path.equals("/workflow") || path.equals("/logout");
                 if (user.getRole() == UserRole.QC) allowed |= path.startsWith("/quality") || path.startsWith("/materials")

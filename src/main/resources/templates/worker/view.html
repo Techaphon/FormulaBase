@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="/css/app.css?v=20261109-review-fixes" />
+    <link rel="stylesheet" href="/css/app.css?v=20261113-search" />
     <script src="/js/app.js?v=20261109-review-fixes"></script>
     <script defer src="/js/worker-preview.js?v=20261107"></script>
     <title th:text="#{ui.103}">Batch Execution</title>
@@ -13,6 +13,7 @@
     <div class="wrap">
       <p><a href="/worker/tasks" th:text="#{ui.104}">← My tasks</a></p>
       <article class="card">
+      <p class="hint" th:if="${user.role.name()=='CEO'}" th:text="#{worker.readOnly}">View progress only.</p>
       <h1 th:text="${plan.formula.name}"></h1>
       <p class="hint" th:text="${plan.formula.documentNo+' · Rev '+plan.formula.revision+' · '+plan.plannedDate}"></p>
         <div class="metric">
@@ -46,7 +47,7 @@
           th:text="${@uiText.translate(error)}"
         ></p>
         <form class="worker-start-form" th:attr="data-target=${plan.targetQuantity}"
-          th:if="${plan.status.name()=='PLANNED'}"
+          th:if="${user.role.name()=='WORKER' and plan.status.name()=='PLANNED'}"
           method="post"
           th:action="@{'/worker/plans/'+${plan.id}+'/start'}"
         >
@@ -94,7 +95,7 @@
               ⏱ <strong>--:--</strong>
             </p>
             <form
-              th:if="${plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id == nextStartStepId}"
+              th:if="${user.role.name()=='WORKER' and plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id == nextStartStepId}"
               method="post"
               th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/start'}"
             >
@@ -102,12 +103,12 @@
             </form>
             <p
               class="hint"
-              th:if="${plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id != nextStartStepId}"
+              th:if="${user.role.name()=='WORKER' and plan.status.name()=='IN_PROGRESS' and execution.status.name()=='PENDING' and execution.id != nextStartStepId}"
             >
               <span th:text="#{worker.previousFirst}">Complete the previous step first.</span>
             </p>
             <form
-              th:if="${execution.status.name()=='IN_PROGRESS'}"
+              th:if="${user.role.name()=='WORKER' and execution.status.name()=='IN_PROGRESS'}"
               method="post"
               th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/complete'}"
             >
@@ -122,7 +123,7 @@
               ><button th:text="#{worker.completeStep}">Complete step</button>
             </form>
             <form
-              th:if="${execution.overdue}"
+              th:if="${user.role.name()=='WORKER' and execution.overdue}"
               method="post"
               th:action="@{'/worker/plans/'+${plan.id}+'/steps/'+${execution.id}+'/acknowledge'}"
             >
@@ -144,10 +145,10 @@
             ></strong>
           </div>
         </details>
-        <p class="hint worker-completion-wait" th:if="${plan.status.name()=='IN_PROGRESS' and !stepsComplete}" th:text="#{worker.finishStepsFirst}">Complete every step before recording output.</p>
+        <p class="hint worker-completion-wait" th:if="${user.role.name()=='WORKER' and plan.status.name()=='IN_PROGRESS' and !stepsComplete}" th:text="#{worker.finishStepsFirst}">Complete every step before recording output.</p>
         <form id="complete-batch" class="worker-completion-form"
           th:attr="data-target=${plan.targetQuantity},data-allowance=${plan.lossAllowanceQuantity},data-warning=#{batch.confirmException},data-invalid-rejected=#{worker.invalidRejected}"
-          th:if="${plan.status.name()=='IN_PROGRESS' and stepsComplete}"
+          th:if="${user.role.name()=='WORKER' and plan.status.name()=='IN_PROGRESS' and stepsComplete}"
           method="post"
           th:action="@{'/worker/plans/'+${plan.id}+'/complete'}"
         >

@@ -122,6 +122,17 @@ public class ProductionPlan {
     public Integer getActualProducedQuantity() { return actualProducedQuantity; }
     public Integer getRejectedQuantity() { return rejectedQuantity; }
     public ProductionPlanStatus getStatus() { return status; }
+    public boolean isVisibleToWorkerOn(LocalDate day) {
+        if (day == null || plannedDate == null || plannedDate.isAfter(day)) return false;
+        if (status == ProductionPlanStatus.IN_PROGRESS) return true;
+        if (status == ProductionPlanStatus.COMPLETED || status == ProductionPlanStatus.LOSS_EXCEPTION)
+            return completedAt != null && com.formulabase.config.BusinessTime.inBangkok(completedAt).toLocalDate().equals(day);
+        return status == ProductionPlanStatus.PLANNED && plannedDate.equals(day);
+    }
+    public boolean isDeletableDraftTask() {
+        return startedAt == null && (status == ProductionPlanStatus.CANCELLED
+                || (status == ProductionPlanStatus.PLANNED && rescheduleLogs.isEmpty()));
+    }
     public User getAssignedWorker() { return assignedWorker; }
     public OffsetDateTime getStartedAt() { return startedAt; }
     public OffsetDateTime getCompletedAt() { return completedAt; }

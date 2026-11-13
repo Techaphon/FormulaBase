@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
+public interface AuditLogRepository extends JpaRepository<AuditLog, UUID>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<AuditLog> {
     List<AuditLog> findTop200ByOrderByCreatedAtDesc();
     List<AuditLog> findByActionAndSubjectIdInOrderByCreatedAtAsc(String action, java.util.Collection<UUID> ids);
     @Query("""

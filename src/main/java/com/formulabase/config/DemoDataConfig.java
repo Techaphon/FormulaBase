@@ -23,6 +23,9 @@ public class DemoDataConfig {
     }
 
     private void createIfMissing(UserRepository repository, User user) {
-        if (repository.findByUsernameIgnoreCase(user.getUsername()).isEmpty()) repository.save(user);
+        if (repository.findByUsernameIgnoreCase(user.getUsername()).isEmpty()) {
+            if (user.getRole() == UserRole.CEO && repository.findByRoleAndActiveTrueAndArchivedFalse(UserRole.CEO).isEmpty()) user.protectAsPrimaryAdmin();
+            repository.save(user);
+        }
     }
 }

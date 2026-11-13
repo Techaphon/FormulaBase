@@ -42,6 +42,7 @@ public class FormulaController {
                     ? service.findAll().stream().filter(f -> f.getStatus() == com.formulabase.domain.FormulaStatus.PENDING_APPROVAL
                             || f.getStatus() == com.formulabase.domain.FormulaStatus.CONFIRMED
                             || f.getStatus() == com.formulabase.domain.FormulaStatus.REJECTED
+                            || f.getStatus() == com.formulabase.domain.FormulaStatus.SUPERSEDED
                             || (f.getStatus() == com.formulabase.domain.FormulaStatus.DRAFT && f.getCreatedBy() != null && f.getCreatedBy().getId().equals(user.getId()))).toList()
                     : service.findAll();
         String query = keyword == null ? "" : keyword.trim().toLowerCase();
@@ -65,7 +66,7 @@ public class FormulaController {
         model.addAttribute("formulaGroups", formulaGroups);
         model.addAttribute("keyword", keyword == null ? "" : keyword); model.addAttribute("selectedStatus", status);
         model.addAttribute("statuses", user.getRole() == com.formulabase.domain.UserRole.QC
-                ? new com.formulabase.domain.FormulaStatus[]{com.formulabase.domain.FormulaStatus.DRAFT, com.formulabase.domain.FormulaStatus.PENDING_APPROVAL, com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED}
+                ? new com.formulabase.domain.FormulaStatus[]{com.formulabase.domain.FormulaStatus.DRAFT, com.formulabase.domain.FormulaStatus.PENDING_APPROVAL, com.formulabase.domain.FormulaStatus.CONFIRMED, com.formulabase.domain.FormulaStatus.REJECTED, com.formulabase.domain.FormulaStatus.SUPERSEDED}
                 : com.formulabase.domain.FormulaStatus.values());
         return "formulas/list";
     }
@@ -143,16 +144,13 @@ public class FormulaController {
         if (user.getRole() == com.formulabase.domain.UserRole.QC
                 && formula.getStatus() == com.formulabase.domain.FormulaStatus.DRAFT
                 && (formula.getCreatedBy() == null || !formula.getCreatedBy().getId().equals(user.getId()))) return "redirect:/formulas";
-        if (user.getRole() == com.formulabase.domain.UserRole.QC
-                && formula.getStatus() == com.formulabase.domain.FormulaStatus.SUPERSEDED) return "redirect:/formulas";
         model.addAttribute("formula", formula);
         String documentRoot = formula.getDocumentNo().replaceFirst("-R\\d+$", "");
         model.addAttribute("formulaVersions", service.findAll().stream()
                 .filter(version -> version.getDocumentNo().replaceFirst("-R\\d+$", "").equals(documentRoot))
                 .filter(version -> user.getRole() != com.formulabase.domain.UserRole.QC
-                        || (version.getStatus() != com.formulabase.domain.FormulaStatus.SUPERSEDED
-                        && (version.getStatus() != com.formulabase.domain.FormulaStatus.DRAFT
-                        || (version.getCreatedBy() != null && version.getCreatedBy().getId().equals(user.getId())))))
+                        || (version.getStatus() != com.formulabase.domain.FormulaStatus.DRAFT
+                        || (version.getCreatedBy() != null && version.getCreatedBy().getId().equals(user.getId()))))
                 .filter(version -> user.getRole() != com.formulabase.domain.UserRole.PC || version.getStatus() == com.formulabase.domain.FormulaStatus.CONFIRMED)
                 .sorted(java.util.Comparator.comparingInt(com.formulabase.domain.Formula::getRevision).reversed())
                 .toList());
