@@ -1,10 +1,17 @@
 <!doctype html>
 <html lang="en" th:lang="${#locale.language}">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title th:text="#{quality.title}">QC review</title><link rel="stylesheet" href="/css/app.css?v=20261113-search"><script src="/js/app.js?v=20261105-ui"></script></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title th:text="#{quality.title}">QC review</title><link rel="stylesheet" href="/css/app.css?v=20261113-search"><script src="/js/app.js?v=20261105-ui"></script><style>
+.quality-topic-filters{display:flex;gap:8px;margin:10px 0 16px;flex-wrap:wrap}
+.quality-topic-btn{background:#f9fcfb00 !important;background-color:#f9fcfb00 !important;color:#29beb5 !important;border:1.5px solid #d5e5e1 !important;transition:background-color .15s ease,color .15s ease,border-color .15s ease}
+.quality-topic-btn:not(.active):hover{background:#f1f8f600 !important;background-color:#f1f8f600 !important;border-color:#b8d4cd !important}
+.quality-topic-btn.active{background:var(--fb-search-bg,#117670) !important;background-color:var(--fb-search-bg,#117670) !important;color:var(--fb-search-color,#ffffff) !important;border:1.5px solid var(--fb-search-bg,#117670) !important}
+</style></head>
 <body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main class="quality-workspace">
   <header class="fb-page-heading"><div><p class="eyebrow" th:text="#{quality.queueEyebrow}">QUALITY REVIEW</p><h1 th:text="#{quality.title}">QC review</h1><p th:text="#{quality.queueIntro}">Review completed batches flagged by the system. Record your decision and note before closing each review.</p></div></header>
   <p class="ok" th:if="${message}" th:text="#{quality.saved}"></p><p class="error" role="alert" th:if="${error}" th:text="${@uiText.translate(error)}"></p>
-  <div class="quality-search"><label for="quality-search"><span th:text="#{common.search}">Search</span><input id="quality-search" type="search" th:placeholder="#{quality.searchHint}"></label><button type="button" id="quality-search-button" th:text="#{common.search}">Search</button></div><div class="quality-review-list"><article class="quality-review-card" th:each="plan:${plans}"><details><summary class="quality-summary">
+  <div class="quality-search"><label for="quality-search"><span th:text="#{common.search}">Search</span><input id="quality-search" type="search" th:placeholder="#{quality.searchHint}"></label><button type="button" id="quality-search-button" th:text="#{common.search}">Search</button></div>
+  <div class="quality-topic-filters"><button type="button" class="quality-topic-btn active" data-topic="all" th:text="${#locale.language == 'th' ? 'ทั้งหมด' : 'All'}">All</button><button type="button" class="quality-topic-btn" data-topic="recorded" th:text="${#locale.language == 'th' ? 'บันทึกการตรวจคุณภาพแล้ว' : 'Quality review recorded'}">Quality review recorded</button><button type="button" class="quality-topic-btn" data-topic="required" th:text="${#locale.language == 'th' ? 'ต้องตรวจสอบ' : 'Review required'}">Review required</button></div>
+  <div class="quality-review-list"><article class="quality-review-card" th:each="plan:${plans}"><details><summary class="quality-summary">
     <header class="quality-card-heading"><div><p class="planning-doc-number" th:text="${plan.formula.documentNo+' · '+plan.plannedDate}"></p><h2 th:text="${plan.formula.name}"></h2><p class="hint" th:text="${plan.assignedWorker==null ? #messages.msg('planning.unassigned') : plan.assignedWorker.fullName}"></p></div><span class="status" th:classappend="${plan.qualityReviewedAt == null ? 'danger' : ''}" th:text="${plan.qualityReviewedAt == null ? #messages.msg('quality.reviewRequired') : #messages.msg('quality.saved')}">Review required</span></header><div class="quality-reason-summary"><span th:if="${plan.goodQuantity < plan.targetQuantity}" th:text="#{quality.belowTarget}"></span><span th:if="${plan.rejectedQuantity > plan.lossAllowanceQuantity}" th:text="#{quality.lossExceeded}"></span></div><div class="quality-quick-stats"><span><span th:text="#{ui.55}"></span>: <strong th:text="${plan.targetQuantity}"></strong></span><span><span th:text="#{output.good}"></span>: <strong th:text="${plan.goodQuantity}"></strong></span><span><span th:text="#{output.rejected}"></span>: <strong th:text="${plan.rejectedQuantity}"></strong></span></div><span class="quality-open-hint" th:text="${plan.qualityReviewedAt == null ? #messages.msg('quality.openReview') : #messages.msg('quality.openReviewed')}">View details</span></summary>
     <section class="quality-exception"><span class="quality-alert-icon" aria-hidden="true">!</span><div><strong th:text="#{quality.exceptionReason}">Reason for review</strong><p th:if="${plan.goodQuantity < plan.targetQuantity}" th:text="#{quality.belowTarget}"></p><p th:if="${plan.rejectedQuantity > plan.lossAllowanceQuantity}" th:text="#{quality.lossExceeded}"></p></div></section>
     <dl class="quality-output-summary"><div><dt th:text="#{ui.55}">Customer target</dt><dd th:text="${plan.targetQuantity}"></dd></div><div><dt th:text="#{quality.plannedTotal}">Planned production</dt><dd th:text="${plan.plannedQuantity}"></dd></div><div><dt th:text="#{ui.108}">Actual produced</dt><dd th:text="${plan.actualProducedQuantity}"></dd></div><div><dt th:text="#{output.good}">Good units</dt><dd th:text="${plan.goodQuantity}"></dd></div><div><dt th:text="#{output.rejected}">Rejected units</dt><dd th:text="${plan.rejectedQuantity}"></dd></div><div><dt th:text="#{quality.lossAllowance}">Loss allowance</dt><dd th:text="${plan.lossAllowanceQuantity}"></dd></div></dl>
@@ -12,4 +19,46 @@
     <form class="quality-review-form" th:if="${plan.qualityReviewedAt == null}" method="post" th:action="@{'/quality/'+${plan.id}+'/review'}"><label for="quality-note" th:attr="for=${'quality-note-'+plan.id}"><span th:text="#{quality.note}">QC decision / note</span><textarea th:id="${'quality-note-'+plan.id}" name="note" required maxlength="255" th:placeholder="#{quality.noteHint}"></textarea></label><p class="hint" th:text="#{quality.reviewHint}">This will record who reviewed the batch and when.</p><button type="submit" th:text="#{quality.save}">Save QC review</button></form>
     <div class="quality-reviewed" th:if="${plan.qualityReviewedAt != null}"><span class="status" th:text="#{quality.saved}">Reviewed</span><p th:text="${plan.qualityReviewNote}"></p><small th:text="${plan.qualityReviewedBy + ' · ' + #temporals.format(T(com.formulabase.config.BusinessTime).inBangkok(plan.qualityReviewedAt),'yyyy-MM-dd HH:mm') + ' (UTC+7)'}"></small></div>
   </details></article><div class="planning-empty" th:if="${#lists.isEmpty(plans)}"><span class="planning-empty-icon" aria-hidden="true">✓</span><h2 th:text="#{quality.emptyTitle}">No batches need review</h2><p th:text="#{quality.empty}">There are no production exceptions waiting for QC.</p></div></div><p id="quality-filter-empty" class="empty" hidden role="status" th:text="#{quality.noMatchingReviews}">No reviews match your search.</p>
-</main></section></div><script>function filterQuality(){const query=document.getElementById('quality-search').value.trim().toLocaleLowerCase();const cards=[...document.querySelectorAll('.quality-review-card')];let visible=0;cards.forEach(card=>{card.hidden=!card.textContent.toLocaleLowerCase().includes(query);if(!card.hidden)visible++;});document.getElementById('quality-filter-empty').hidden=cards.length===0||visible>0;}document.getElementById('quality-search').addEventListener('input',filterQuality);document.getElementById('quality-search-button').addEventListener('click',filterQuality);document.getElementById('quality-search').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();filterQuality();}});</script></body></html>
+</main></section></div><script>
+let selectedTopic = 'all';
+(function syncTopicButtonStyle() {
+  const searchBtn = document.getElementById('quality-search-button');
+  if (!searchBtn) return;
+  const s = window.getComputedStyle(searchBtn);
+  document.documentElement.style.setProperty('--fb-search-bg', s.backgroundColor);
+  document.documentElement.style.setProperty('--fb-search-color', s.color);
+  document.querySelectorAll('.quality-topic-btn').forEach(btn => {
+    btn.style.borderRadius = s.borderRadius;
+    btn.style.fontFamily = s.fontFamily;
+    btn.style.fontSize = s.fontSize;
+    btn.style.fontWeight = s.fontWeight;
+    btn.style.padding = s.padding;
+    btn.style.cursor = 'pointer';
+  });
+})();
+function filterQuality(){
+  const query=document.getElementById('quality-search').value.trim().toLocaleLowerCase();
+  const cards=[...document.querySelectorAll('.quality-review-card')];
+  let visible=0;
+  cards.forEach(card=>{
+    const matchesSearch = card.textContent.toLocaleLowerCase().includes(query);
+    const statusEl = card.querySelector('.status');
+    const isRequired = statusEl && statusEl.classList.contains('danger');
+    const matchesTopic = selectedTopic === 'all' || (selectedTopic === 'required' ? isRequired : !isRequired);
+    card.hidden = !(matchesSearch && matchesTopic);
+    if(!card.hidden) visible++;
+  });
+  document.getElementById('quality-filter-empty').hidden=cards.length===0||visible>0;
+}
+document.querySelectorAll('.quality-topic-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.quality-topic-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTopic = btn.dataset.topic;
+    filterQuality();
+  });
+});
+document.getElementById('quality-search').addEventListener('input',filterQuality);
+document.getElementById('quality-search-button').addEventListener('click',filterQuality);
+document.getElementById('quality-search').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();filterQuality();}});
+</script></body></html>
