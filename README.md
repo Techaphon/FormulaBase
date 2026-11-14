@@ -1,47 +1,90 @@
 # Formula Base
 
-New clean implementation of the Formula Base university project.
+Formula Base is a manufacturing workflow application for managing product formulas, raw materials, monthly production plans, and production records. It supports formula review and approval, work assignments, step-by-step production, quality review, and printable work orders. The application provides separate workspaces for management, quality control, production control, and production workers, with Thai and English interfaces.
 
-The previous implementation is preserved at:
+## Group members and responsibilities
 
-`C:\0Work\Formula Base Legacy`
+<!-- Replace every placeholder with a member's real student ID, full name, and actual contributions before submission. Add or remove rows as needed. -->
 
-The new implementation prioritizes accurate quantity calculations, explicit
-loss allowance, traceable production plans, and a mobile-first worker screen.
+| Student ID | Full name | Features or work responsible for |
+| --- | --- | --- |
+| [6831503040] | [Nathida Somkwamkid] | [Actual contributions] |
+| [6831503042] | [Natchanon Inpha] | [Actual contributions] |
+| [6831503046] | [Nicha Hiruncharoen] | [Actual contributions] |
+| [6831503048] | [Techaphon Srebencharat] | [Actual contributions] |
+| [6831503060] | [Ploychompoo Ngamratprasert] | [Actual contributions] |
 
-## Run the local demo
+## Requirements
 
-Requires Java 17+ and Internet access on the first Maven run.
+- Java 17 or later (JDK).
+- Internet access on the first run to download Maven and project dependencies.
+- Port 8080 available on the local machine.
 
-```powershell
-.\scripts\start-demo.ps1
-```
+The project includes the Maven Wrapper, so a separate Maven installation is not required.
 
-Open http://localhost:8080/login. This uses a separate persistent H2 database
-at `data/browser-demo.mv.db`; it does not replace `data/formulabase.mv.db`.
-Do not launch a second instance on the same port/database while it is running.
+## Run locally
 
-Demo accounts: `ceo`, `qc`, `pc`, `worker1`; password for all: `123456`.
+1. Clone this repository and open a terminal in its root directory, where `pom.xml` is located.
 
-1. QC creates a formula, using existing materials or creating new materials inline, then submits it.
-2. CEO confirms the formula.
-3. PC creates a monthly plan, assigns a worker and production date, then locks it.
-4. Worker opens their due task, enters loss percentage (zero is valid), and starts the entire batch.
-5. Worker sees material totals for target plus rounded-up extra product units, then records actual production including rejected units.
-6. Abnormal counts require confirmation in the UI and appear in QC's quality-review page.
-7. QC records a review note. Counts remain unchanged; the pending-review counter decreases.
+   ```sh
+   git clone https://github.com/Techaphon/FormulaBase.git
+   cd FormulaBase
+   ```
 
-CEO can use all workspaces and add tasks to a locked month. PC cannot change a locked month.
-TH/EN persists through the locale cookie; light/dark theme persists in the browser.
+2. Start the application using a fresh, temporary H2 database. In Windows PowerShell:
 
-## Verification
+   ```powershell
+   .\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--server.port=8080 --spring.datasource.url=jdbc:h2:mem:formulabase;DB_CLOSE_DELAY=-1'
+   ```
+
+   On macOS or Linux:
+
+   ```sh
+   chmod +x mvnw
+   ./mvnw spring-boot:run '-Dspring-boot.run.arguments=--server.port=8080 --spring.datasource.url=jdbc:h2:mem:formulabase;DB_CLOSE_DELAY=-1'
+   ```
+
+3. Open [http://localhost:8080/login](http://localhost:8080/login). Stop the application with `Ctrl+C` in the terminal.
+
+The temporary database starts empty on each run and is deleted when the application stops. The application creates the demo accounts below automatically. This command avoids using an older H2 database file that may be present in the repository. For a different port, change `--server.port=8080` and the URL accordingly.
+
+### Local demo accounts
+
+These accounts are seeded only for local non-production use. They are not production credentials. Each account uses the demo password `123456`.
+
+| Username | Role |
+| --- | --- |
+| `ceo` | CEO / management |
+| `qc` | Quality control |
+| `pc` | Production control |
+| `worker1` | Production worker |
+
+### Suggested demo workflow
+
+1. Sign in as QC, create materials and a formula with production steps, and submit the formula for approval.
+2. Sign in as CEO and review the submitted formula.
+3. After approval, sign in as PC, create a monthly production plan, assign a worker and date, and lock the plan.
+4. Sign in as the assigned worker on the scheduled day, perform the production steps, and record the total produced and the rejected quantity.
+5. Review production progress and records using the appropriate role. QC can review items that require quality attention.
+
+The exact actions available depend on the account role and the current state of the formula or production plan.
+
+## Run tests
+
+In Windows PowerShell:
 
 ```powershell
 .\mvnw.cmd test
-# First script expects a fresh demo month (run against an isolated test instance).
-.\scripts\demo-smoke.ps1 -Base http://localhost:8080
-# Requires the confirmed HTTP test formula/month created by demo-smoke.
-.\scripts\quality-smoke.ps1 -Base http://localhost:8080
 ```
 
-Both smoke scripts create test records. Browser test results are in `DEMO_VERIFICATION.md`.
+On macOS or Linux:
+
+```sh
+./mvnw test
+```
+
+Some PostgreSQL integration tests require a separately configured test database and may be skipped when it is unavailable. The local demo above does not require Supabase or a PostgreSQL server.
+
+## Production configuration
+
+The `prod` profile uses PostgreSQL and Flyway migrations. Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` through the deployment environment or a secret manager. Do not commit real credentials, tokens, database dumps, or production data to the repository. Local demo accounts are not automatically seeded by the production profile.
