@@ -35,3 +35,29 @@ body.print-document { margin:0; min-height:100vh; padding:26px; background:#edf5
  .document-section h2,.spec-section h2{break-after:avoid}
  .spec-signatures,.spec-footer{break-inside:avoid}
 }
+
+.fb-dark body.print-document {
+  background: #102323;
+  color: #edf9f8;
+}
+
+.fb-dark .document-toolbar {
+  background: #193232;
+  color: #edf9f8;
+  border-color: #31504d;
+}
+
+.document-sheet,
+.spec-sheet,
+.fb-dark .document-sheet,
+.fb-dark .spec-sheet {
+  background: #fff;
+  color: #102a35;
+}
+
+.document-sheet table,
+.spec-sheet table,
+.fb-dark .document-sheet table,
+.fb-dark .spec-sheet table {
+  color: #102a35;
+}
