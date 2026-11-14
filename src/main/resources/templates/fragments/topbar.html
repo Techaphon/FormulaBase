@@ -23,7 +23,6 @@
             line-height: 1 !important;
         }
 
-        /* ซ่อนปุ่ม Logout ด้านบนอัตโนมัติ ในหน้าที่มีแถบเมนูด้านซ้าย (Sidebar) หรือมีปุ่ม Logout มุมซ้ายล่างอยู่แล้ว */
         body:has(aside) .topbar-logout,
         body:has([class*="sidebar"]) .topbar-logout,
         body:has(form[action="/logout"]:not(.topbar-logout)) .topbar-logout,

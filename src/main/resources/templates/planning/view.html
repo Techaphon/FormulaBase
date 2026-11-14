@@ -1,33 +1,275 @@
 <!doctype html>
 <html lang="en" th:lang="${#locale.language}">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/app.css?v=20261109-planning-tablet"><script src="/js/app.js?v=20261109-heuristics"></script><title th:text="#{planning.cycleTitle}">Planning Cycle</title></head>
-<body class="workspace-page"><div class="fb-shell"><aside th:replace="~{fragments/sidebar :: sidebar}"></aside><section class="fb-content"><div th:replace="~{fragments/topbar :: topbar}"></div><main class="planning-detail">
-  <a class="back-link" href="/planning" th:text="#{planning.back}">← Monthly Planning</a>
-  <header class="fb-page-heading planning-detail-heading"><div><p class="eyebrow" th:text="#{planning.monthlyEyebrow}">MONTHLY PRODUCTION</p><h1 th:text="${#messages.msg('planning.title')+' '+cycle.planningMonth}">Monthly Planning</h1><p th:text="#{planning.detailIntro}">Add daily production tasks, assign a worker, then lock the schedule when it is ready.</p></div><span class="status planning-status" th:text="${#messages.msg('status.'+cycle.status)}">Draft</span></header>
-  <p class="ok" th:if="${message}" th:text="${@uiText.translate(message)}"></p><p class="error" th:if="${error}" th:text="${@uiText.translate(error)}"></p>
-  <section class="planning-add-panel" th:if="${cycle.status.name()=='DRAFT' or canPlan}"><div class="planning-section-heading"><span class="planning-step-number">1</span><div><h2 th:text="#{planning.addTaskHeading}">Add a production task</h2><p class="hint" th:text="#{planning.addTaskHint}">Set the formula, production date, target number of units and worker.</p></div></div>
-    <form class="planning-form planning-add-form" method="post" th:action="@{'/planning/'+${cycle.id}+'/plans'}">
-      <label><span th:text="#{planning.selectFormula}">Confirmed formula</span><select name="formulaId" required><option value="" th:text="#{planning.selectFormula}">Select confirmed formula</option><option th:each="formula:${formulas}" th:if="${formula.status.name()=='CONFIRMED'}" th:value="${formula.id}" th:text="${formula.documentNo+' · '+formula.name+' · Rev '+formula.revision}"></option></select></label>
-      <label><span th:text="#{common.date}">Production date</span><input type="date" name="plannedDate" required th:attr="min=${monthStart},max=${monthEnd}"></label>
-      <label><span th:text="#{planning.targetUnits}">Target units</span><input type="number" name="targetQuantity" min="1" required th:placeholder="#{planning.targetUnits}"></label>
-      <label><span th:text="#{planning.worker}">Assigned worker</span><select name="workerId"><option value="" th:text="#{planning.unassigned}">Unassigned</option><option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option></select></label>
-      <button type="submit" th:text="#{planning.addTask}">Add task</button>
-    </form>
-  </section>
-  <section class="planning-task-section"><div class="fb-panel-heading"><div><p class="eyebrow" th:text="#{planning.tasksEyebrow}">SCHEDULED WORK</p><h2 th:text="#{planning.tasksHeading}">Production tasks</h2></div><span class="status" th:text="${#lists.size(plans)}"></span></div>
-    <p class="hint" th:if="${cancelledCount > 0}" th:text="#{planning.hiddenCancelled(${cancelledCount})}"></p>
-    <div class="planning-task-list"><article class="planning-task-card" th:each="plan,stat:${plans}">
-      <div class="planning-task-number" th:text="${stat.count}">1</div><div class="planning-task-body"><div class="planning-task-title"><div><p class="planning-doc-number" th:text="${plan.formula.documentNo+' · Rev '+plan.formula.revision}"></p><h3 th:text="${plan.formula.name}">Formula name</h3></div><span class="status" th:text="${plan.status.name()=='CANCELLED' ? #messages.msg('status.CANCELLED') : (cycle.status.name()=='DRAFT' ? #messages.msg('status.DRAFT') : (plan.qualityReviewedAt!=null?#messages.msg('quality.saved'):(plan.assignedWorker==null and plan.status.name()=='PLANNED' ? #messages.msg('planning.awaitingAssignment') : #messages.msg('status.'+plan.status))))}">Planned</span></div>
-        <dl class="planning-task-details"><div><dt th:text="#{common.date}">Date</dt><dd th:text="${plan.plannedDate}"></dd></div><div><dt th:text="#{planning.worker}">Worker</dt><dd th:text="${plan.assignedWorker==null?#messages.msg('planning.unassigned'):plan.assignedWorker.fullName}"></dd></div><div><dt th:text="#{ui.55}">Target</dt><dd><strong th:text="${plan.targetQuantity}"></strong> <span th:text="#{planning.units}">units</span></dd></div></dl>
-        <div class="planning-task-actions"><a class="fb-action primary" target="_blank" th:href="@{'/print/work-order/'+${plan.id}}" th:text="${cycle.status.name()=='DRAFT' ? #messages.msg('common.previewDraft') : #messages.msg('common.print')}">Preview work order</a>
-          <details class="planning-edit-details" th:if="${(cycle.status.name()=='DRAFT' or canPlan) and plan.status.name()=='PLANNED'}"><summary th:text="#{planning.edit}">Edit schedule</summary><p class="hint" th:text="#{planning.rescheduleHint}"></p><form method="post" th:action="@{'/planning/plans/'+${plan.id}+'/reschedule'}"><label><span th:text="#{planning.newDate}">New date</span><input name="plannedDate" type="date" required th:attr="min=${monthStart},max=${monthEnd}"></label><label><span th:text="#{planning.worker}">Worker</span><select name="workerId"><option value="" th:text="#{planning.keepWorker}">Keep current worker</option><option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option></select></label><label><span th:text="#{common.reason}">Reason</span><input name="reason" required maxlength="255" th:placeholder="#{common.reason}"></label><button type="submit" th:text="#{planning.reschedule}">Reschedule</button></form><form class="planning-cancel-form" method="post" th:attr="data-confirm=#{planning.confirmCancel}" th:action="@{'/planning/plans/'+${plan.id}+'/cancel'}"><button class="danger" type="submit" th:text="#{planning.cancel}">Cancel task</button></form></details>
-          <form class="planning-delete-form" th:if="${cycle.status.name()=='DRAFT' and plan.deletableDraftTask}" method="post" th:attr="data-confirm=#{planning.confirmDeleteTask}" th:action="@{'/planning/'+${cycle.id}+'/plans/'+${plan.id}+'/delete'}"><button class="danger" type="submit" th:text="#{planning.deleteTask}">Delete task</button></form>
-          <details class="planning-history-details" th:if="${transferHistory[plan.id] != null}"><summary th:text="#{transfer.history}">Transfer history</summary><ul><li th:each="entry:${transferHistory[plan.id]}"><span th:text="${#temporals.format(entry.createdAt,'yyyy-MM-dd HH:mm')}"></span> · <span th:text="${entry.details}"></span> · <span th:text="${entry.actor == null ? '-' : entry.actor.fullName}"></span></li></ul></details><details class="planning-history-details" th:if="${not #lists.isEmpty(plan.rescheduleLogs)}"><summary th:text="#{planning.history}">Change history</summary><ul><li th:each="log:${plan.rescheduleLogs}" th:text="${log.previousDate+' → '+log.newDate+' · '+log.reason}"></li></ul></details>
-        </div>
-      </div>
-    </article><div class="planning-empty" th:if="${#lists.isEmpty(plans)}"><span class="planning-empty-icon" aria-hidden="true">＋</span><h3 th:text="#{planning.noActiveTasks}">No active tasks in this month</h3><p th:if="${cancelledCount == 0 and (cycle.status.name()=='DRAFT' or canPlan)}" th:text="#{planning.noTasksHint}"></p></div></div>
-  </section>
-  <section class="planning-lock-panel" th:if="${cycle.status.name()=='DRAFT'}"><div><strong th:text="#{planning.lockHeading}">Ready to publish this schedule?</strong><p class="hint" th:text="#{planning.lockHint}">Locking makes assigned tasks available to workers.</p><p class="hint" th:text="#{planning.reviewSummary(${#lists.size(plans)},${unassignedCount})}"></p></div><form method="post" th:action="@{'/planning/'+${cycle.id}+'/lock'}"><button type="submit" class="planning-lock-button" th:text="#{planning.lock}">Lock monthly plan</button></form></section>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="/css/app.css?v=20261109-planning-tablet">
+  <script src="/js/app.js?v=20261109-heuristics"></script>
+  <title th:text="#{planning.cycleTitle}">Planning Cycle</title>
+  <style>
+    .fb-task-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .fb-filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid #d1fae5;
+      border-radius: 9999px;
+      padding: 4px 12px 4px 14px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      transition: all 0.2s ease;
+    }
+    .fb-filter-pill:hover,
+    .fb-filter-pill:focus-within {
+      border-color: #14b8a6;
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+    }
+    .fb-filter-pill svg {
+      color: #0d9488;
+      flex-shrink: 0;
+    }
+    .fb-filter-pill label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #475569;
+      margin: 0;
+      white-space: nowrap;
+    }
+    .fb-filter-pill select {
+      appearance: none;
+      -webkit-appearance: none;
+      border: none !important;
+      background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230d9488' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 4px center !important;
+      padding: 4px 24px 4px 4px !important;
+      min-height: unset !important;
+      height: auto !important;
+      width: auto !important;
+      font-size: 0.88rem !important;
+      font-weight: 600 !important;
+      color: #0f766e !important;
+      cursor: pointer;
+      box-shadow: none !important;
+      margin: 0 !important;
+    }
+    .fb-filter-pill select:focus {
+      outline: none !important;
+    }
+    .fb-filter-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 9999px;
+      background: #f0fdfa;
+      color: #0f766e;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: 1px solid #ccfbf1;
+    }
+  </style>
+</head>
+<body class="workspace-page">
+  <div class="fb-shell">
+    <aside th:replace="~{fragments/sidebar :: sidebar}"></aside>
+    <section class="fb-content">
+      <div th:replace="~{fragments/topbar :: topbar}"></div>
+      <main class="planning-detail">
+        <a class="back-link" href="/planning" th:text="#{planning.back}">← Monthly Planning</a>
+        <header class="fb-page-heading planning-detail-heading">
+          <div>
+            <p class="eyebrow" th:text="#{planning.monthlyEyebrow}">MONTHLY PRODUCTION</p>
+            <h1 th:text="${#messages.msg('planning.title')+' '+cycle.planningMonth}">Monthly Planning</h1>
+            <p th:text="#{planning.detailIntro}">Add daily production tasks, assign a worker, then lock the schedule when it is ready.</p>
+          </div>
+          <span class="status planning-status" th:text="${#messages.msg('status.'+cycle.status)}">Draft</span>
+        </header>
+        <p class="ok" th:if="${message}" th:text="${@uiText.translate(message)}"></p>
+        <p class="error" th:if="${error}" th:text="${@uiText.translate(error)}"></p>
 
-  <section class="planning-delete-month" th:if="${cycle.status.name()=='DRAFT'}"><h2 th:text="#{planning.deleteMonth}">Delete month</h2><p class="hint" th:text="#{planning.deleteMonthHint}"></p><p class="error" role="status" th:if="${deleteBlockedCount > 0}" th:text="#{planning.cannotDeleteHistory(${deleteBlockedCount})}"></p><p class="hint" th:if="${deleteBlockedCount > 0}" th:text="#{planning.deleteBlockedHelp}"></p><form method="post" th:if="${deleteBlockedCount == 0}" th:attr="data-confirm=#{planning.confirmDeleteMonth}" th:action="@{'/planning/'+${cycle.id}+'/delete'}"><button class="danger" type="submit" th:text="#{planning.deleteMonth}">Delete month</button></form></section>
-</main></section></div></body></html>
+        <section class="planning-add-panel" th:if="${cycle.status.name()=='DRAFT' or canPlan}">
+          <div class="planning-section-heading">
+            <span class="planning-step-number">1</span>
+            <div>
+              <h2 th:text="#{planning.addTaskHeading}">Add a production task</h2>
+              <p class="hint" th:text="#{planning.addTaskHint}">Set the formula, production date, target number of units and worker.</p>
+            </div>
+          </div>
+          <form class="planning-form planning-add-form" method="post" th:action="@{'/planning/'+${cycle.id}+'/plans'}">
+            <label>
+              <span th:text="#{planning.selectFormula}">Confirmed formula</span>
+              <select name="formulaId" required>
+                <option value="" th:text="#{planning.selectFormula}">Select confirmed formula</option>
+                <option th:each="formula:${formulas}" th:if="${formula.status.name()=='CONFIRMED'}" th:value="${formula.id}" th:text="${formula.documentNo+' · '+formula.name+' · Rev '+formula.revision}"></option>
+              </select>
+            </label>
+            <label>
+              <span th:text="#{common.date}">Production date</span>
+              <input type="date" name="plannedDate" required th:attr="min=${monthStart},max=${monthEnd}">
+            </label>
+            <label>
+              <span th:text="#{planning.targetUnits}">Target units</span>
+              <input type="number" name="targetQuantity" min="1" required th:placeholder="#{planning.targetUnits}">
+            </label>
+            <label>
+              <span th:text="#{planning.worker}">Assigned worker</span>
+              <select name="workerId">
+                <option value="" th:text="#{planning.unassigned}">Unassigned</option>
+                <option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option>
+              </select>
+            </label>
+            <button type="submit" th:text="#{planning.addTask}">Add task</button>
+          </form>
+        </section>
+
+        <section class="planning-task-section">
+          <div class="fb-task-toolbar">
+            <div>
+              <p class="eyebrow" th:text="#{planning.tasksEyebrow}">SCHEDULED WORK</p>
+              <h2 th:text="#{planning.tasksHeading}" style="margin: 0;">Production tasks</h2>
+            </div>
+
+            <div class="fb-filter-pill">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              <label for="planStatusFilter" th:text="${#locale.language == 'th' ? 'สถานะ:' : 'Status:'}">Status:</label>
+              <select id="planStatusFilter" onchange="filterPlansByStatus()">
+                <option value="ALL" th:text="${#locale.language == 'th' ? 'ทั้งหมด' : 'All statuses'}">All statuses</option>
+                <option value="NEEDS_QUALITY_REVIEW" th:text="${#locale.language == 'th' ? 'รอตรวจสอบคุณภาพ' : 'Needs quality review'}">Needs quality review</option>
+                <option value="COMPLETED" th:text="${#locale.language == 'th' ? 'เสร็จแล้ว' : 'Completed'}">Completed</option>
+              </select>
+              <span id="visiblePlanCount" class="fb-filter-count" th:text="${#lists.size(plans)}">0</span>
+            </div>
+          </div>
+
+          <p class="hint" th:if="${cancelledCount > 0}" th:text="#{planning.hiddenCancelled(${cancelledCount})}"></p>
+
+          <div class="planning-task-list">
+            <article class="planning-task-card" 
+                     th:each="plan,stat:${plans}"
+                     th:attr="data-filter-status=${(plan.qualityReviewedAt != null or plan.status.name() == 'COMPLETED') ? 'COMPLETED' : 'NEEDS_QUALITY_REVIEW'}">
+              <div class="planning-task-number" th:text="${stat.count}">1</div>
+              <div class="planning-task-body">
+                <div class="planning-task-title">
+                  <div>
+                    <p class="planning-doc-number" th:text="${plan.formula.documentNo+' · Rev '+plan.formula.revision}"></p>
+                    <h3 th:text="${plan.formula.name}">Formula name</h3>
+                  </div>
+                  <span class="status" th:text="${plan.status.name()=='CANCELLED' ? #messages.msg('status.CANCELLED') : (cycle.status.name()=='DRAFT' ? #messages.msg('status.DRAFT') : (plan.qualityReviewedAt!=null?#messages.msg('quality.saved'):(plan.assignedWorker==null and plan.status.name()=='PLANNED' ? #messages.msg('planning.awaitingAssignment') : #messages.msg('status.'+plan.status))))}">Planned</span>
+                </div>
+                <dl class="planning-task-details">
+                  <div><dt th:text="#{common.date}">Date</dt><dd th:text="${plan.plannedDate}"></dd></div>
+                  <div><dt th:text="#{planning.worker}">Worker</dt><dd th:text="${plan.assignedWorker==null?#messages.msg('planning.unassigned'):plan.assignedWorker.fullName}"></dd></div>
+                  <div><dt th:text="#{ui.55}">Target</dt><dd><strong th:text="${plan.targetQuantity}"></strong> <span th:text="#{planning.units}">units</span></dd></div>
+                </dl>
+                <div class="planning-task-actions">
+                  <a class="fb-action primary" target="_blank" th:href="@{'/print/work-order/'+${plan.id}}" th:text="${cycle.status.name()=='DRAFT' ? #messages.msg('common.previewDraft') : #messages.msg('common.print')}">Preview work order</a>
+                  <details class="planning-edit-details" th:if="${(cycle.status.name()=='DRAFT' or canPlan) and plan.status.name()=='PLANNED'}">
+                    <summary th:text="#{planning.edit}">Edit schedule</summary>
+                    <p class="hint" th:text="#{planning.rescheduleHint}"></p>
+                    <form method="post" th:action="@{'/planning/plans/'+${plan.id}+'/reschedule'}">
+                      <label><span th:text="#{planning.newDate}">New date</span><input name="plannedDate" type="date" required th:attr="min=${monthStart},max=${monthEnd}"></label>
+                      <label><span th:text="#{planning.worker}">Worker</span><select name="workerId"><option value="" th:text="#{planning.keepWorker}">Keep current worker</option><option th:each="worker:${workers}" th:value="${worker.id}" th:text="${worker.fullName}"></option></select></label>
+                      <label><span th:text="#{common.reason}">Reason</span><input name="reason" required maxlength="255" th:placeholder="#{common.reason}"></label>
+                      <button type="submit" th:text="#{planning.reschedule}">Reschedule</button>
+                    </form>
+                    <form class="planning-cancel-form" method="post" th:attr="data-confirm=#{planning.confirmCancel}" th:action="@{'/planning/plans/'+${plan.id}+'/cancel'}">
+                      <button class="danger" type="submit" th:text="#{planning.cancel}">Cancel task</button>
+                    </form>
+                  </details>
+                  <form class="planning-delete-form" th:if="${cycle.status.name()=='DRAFT' and plan.deletableDraftTask}" method="post" th:attr="data-confirm=#{planning.confirmDeleteTask}" th:action="@{'/planning/'+${cycle.id}+'/plans/'+${plan.id}+'/delete'}">
+                    <button class="danger" type="submit" th:text="#{planning.deleteTask}">Delete task</button>
+                  </form>
+                  <details class="planning-history-details" th:if="${transferHistory[plan.id] != null}">
+                    <summary th:text="#{transfer.history}">Transfer history</summary>
+                    <ul><li th:each="entry:${transferHistory[plan.id]}"><span th:text="${#temporals.format(entry.createdAt,'yyyy-MM-dd HH:mm')}"></span> · <span th:text="${entry.details}"></span> · <span th:text="${entry.actor == null ? '-' : entry.actor.fullName}"></span></li></ul>
+                  </details>
+                  <details class="planning-history-details" th:if="${not #lists.isEmpty(plan.rescheduleLogs)}">
+                    <summary th:text="#{planning.history}">Change history</summary>
+                    <ul><li th:each="log:${plan.rescheduleLogs}" th:text="${log.previousDate+' → '+log.newDate+' · '+log.reason}"></li></ul>
+                  </details>
+                </div>
+              </div>
+            </article>
+
+            <div id="filterEmptyState" class="planning-empty" style="display: none;">
+              <span class="planning-empty-icon" aria-hidden="true">⌕</span>
+              <h3 th:text="${#locale.language == 'th' ? 'ไม่พบรายการงานผลิตตามสถานะที่เลือก' : 'No matching tasks'}">No matching tasks</h3>
+              <p class="hint" th:text="${#locale.language == 'th' ? 'ลองเปลี่ยนตัวกรองสถานะด้านบนเพื่อดูรายการอื่น' : 'There are no production tasks matching the selected status.'}">There are no production tasks matching the selected status.</p>
+            </div>
+
+            <div class="planning-empty" th:if="${#lists.isEmpty(plans)}">
+              <span class="planning-empty-icon" aria-hidden="true">＋</span>
+              <h3 th:text="#{planning.noActiveTasks}">No active tasks in this month</h3>
+              <p th:if="${cancelledCount == 0 and (cycle.status.name()=='DRAFT' or canPlan)}" th:text="#{planning.noTasksHint}"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="planning-lock-panel" th:if="${cycle.status.name()=='DRAFT'}">
+          <div>
+            <strong th:text="#{planning.lockHeading}">Ready to publish this schedule?</strong>
+            <p class="hint" th:text="#{planning.lockHint}">Locking makes assigned tasks available to workers.</p>
+            <p class="hint" th:text="#{planning.reviewSummary(${#lists.size(plans)},${unassignedCount})}"></p>
+          </div>
+          <form method="post" th:action="@{'/planning/'+${cycle.id}+'/lock'}">
+            <button type="submit" class="planning-lock-button" th:text="#{planning.lock}">Lock monthly plan</button>
+          </form>
+        </section>
+
+        <section class="planning-delete-month" th:if="${cycle.status.name()=='DRAFT'}">
+          <h2 th:text="#{planning.deleteMonth}">Delete month</h2>
+          <p class="hint" th:text="#{planning.deleteMonthHint}"></p>
+          <p class="error" role="status" th:if="${deleteBlockedCount > 0}" th:text="#{planning.cannotDeleteHistory(${deleteBlockedCount})}"></p>
+          <p class="hint" th:if="${deleteBlockedCount > 0}" th:text="#{planning.deleteBlockedHelp}"></p>
+          <form method="post" th:if="${deleteBlockedCount == 0}" th:attr="data-confirm=#{planning.confirmDeleteMonth}" th:action="@{'/planning/'+${cycle.id}+'/delete'}">
+            <button class="danger" type="submit" th:text="#{planning.deleteMonth}">Delete month</button>
+          </form>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    function filterPlansByStatus() {
+      const selectedStatus = document.getElementById('planStatusFilter').value;
+      const cards = document.querySelectorAll('.planning-task-card');
+      const countBadge = document.getElementById('visiblePlanCount');
+      const emptyState = document.getElementById('filterEmptyState');
+      
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const cardStatus = card.getAttribute('data-filter-status');
+        const isMatch = (selectedStatus === 'ALL' || cardStatus === selectedStatus);
+
+        if (isMatch) {
+          card.style.display = '';
+          visibleCount++;
+          const numBadge = card.querySelector('.planning-task-number');
+          if (numBadge) numBadge.textContent = visibleCount;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      if (countBadge) {
+        countBadge.textContent = visibleCount;
+      }
+
+      if (emptyState && cards.length > 0) {
+        emptyState.style.display = (visibleCount === 0) ? '' : 'none';
+      }
+    }
+  </script>
+</body>
+</html>
