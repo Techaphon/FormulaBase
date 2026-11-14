@@ -31,22 +31,30 @@ The project includes the Maven Wrapper, so a separate Maven installation is not 
    cd FormulaBase
    ```
 
-2. Start the application using a fresh, temporary H2 database. In Windows PowerShell:
+2. Start the application with the small local sample dataset and a fresh, temporary H2 database. If Maven is installed, run:
+
+   ```sh
+   mvn spring-boot:run "-Dspring-boot.run.profiles=dev,local-demo"
+   ```
+
+   Alternatively, use the included Maven Wrapper. In Windows PowerShell:
 
    ```powershell
-   .\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--server.port=8080 --spring.datasource.url=jdbc:h2:mem:formulabase;DB_CLOSE_DELAY=-1'
+   .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev,local-demo'
    ```
 
    On macOS or Linux:
 
    ```sh
    chmod +x mvnw
-   ./mvnw spring-boot:run '-Dspring-boot.run.arguments=--server.port=8080 --spring.datasource.url=jdbc:h2:mem:formulabase;DB_CLOSE_DELAY=-1'
+   ./mvnw spring-boot:run '-Dspring-boot.run.profiles=dev,local-demo'
    ```
 
 3. Open [http://localhost:8080/login](http://localhost:8080/login). Stop the application with `Ctrl+C` in the terminal.
 
-The temporary database starts empty on each run and is deleted when the application stops. The application creates the demo accounts below automatically. This command avoids using an older H2 database file that may be present in the repository. For a different port, change `--server.port=8080` and the URL accordingly.
+The `local-demo` profile uses an in-memory H2 database and creates four demo accounts, two sample materials, an approved sample formula with two steps, and one task assigned to `worker1` for today in Bangkok time. It is disposable test data, not a production recipe. The sample data and any changes disappear when the application stops. For another port, append `"-Dspring-boot.run.arguments=--server.port=8081"` and open port 8081 instead. The sample profile refuses non-memory databases and is disabled when `prod` is active.
+
+Running plain `mvn spring-boot:run` uses the default `dev` profile and its local file-based H2 database instead; it does not load this sample dataset and may use an existing database file. Use the explicit command above for a clean, repeatable demo.
 
 ### Local demo accounts
 
@@ -61,10 +69,10 @@ These accounts are seeded only for local non-production use. They are not produc
 
 ### Suggested demo workflow
 
-1. Sign in as QC, create materials and a formula with production steps, and submit the formula for approval.
+1. Sign in as QC, inspect the sample materials and formula, or create a new formula with production steps and submit it for approval.
 2. Sign in as CEO and review the submitted formula.
-3. After approval, sign in as PC, create a monthly production plan, assign a worker and date, and lock the plan.
-4. Sign in as the assigned worker on the scheduled day, perform the production steps, and record the total produced and the rejected quantity.
+3. Sign in as PC to inspect the sample monthly plan, or plan another approved formula and assign a worker.
+4. Sign in as `worker1`, open today's sample task, perform the production steps, and record the total produced and the rejected quantity.
 5. Review production progress and records using the appropriate role. QC can review items that require quality attention.
 
 The exact actions available depend on the account role and the current state of the formula or production plan.

@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Profile("!prod")
 public class DemoDataConfig {
     @Bean
+    @org.springframework.core.annotation.Order(0)
     CommandLineRunner seedUsers(UserRepository repository, PasswordEncoder passwordEncoder) {
         return args -> {
             createIfMissing(repository, new User("ceo", passwordEncoder.encode("123456"), "Demo CEO", UserRole.CEO));
