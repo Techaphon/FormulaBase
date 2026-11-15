@@ -85,7 +85,3 @@ On macOS or Linux:
 ```
 
 Some PostgreSQL integration tests require a separately configured test database and may be skipped when it is unavailable. The local demo above does not require Supabase or a PostgreSQL server.
-
-## Production configuration
-
-The `prod` profile uses PostgreSQL and Flyway migrations. Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` through the deployment environment or a secret manager. Do not commit real credentials, tokens, database dumps, or production data to the repository. Local demo accounts are not automatically seeded by the production profile.
